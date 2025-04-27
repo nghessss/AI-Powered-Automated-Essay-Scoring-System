@@ -148,3 +148,4 @@ cython_debug/
 *.gguf
 *.h5
 src/models
+backend/models

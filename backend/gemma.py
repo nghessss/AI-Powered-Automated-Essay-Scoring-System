@@ -1,5 +1,7 @@
-from bert_setup import predict_score
+from bert_setup import get_overall_score
 import ollama
+import asyncio
+import pandas as pd
 
 async def create_prompt(question: str, essay: str, overall_score: float) -> str:
     prompt = (
@@ -43,8 +45,8 @@ async def create_prompt(question: str, essay: str, overall_score: float) -> str:
     )
     return prompt
 
-async def get_feedback(ovrall_score: float, question:str , answer: str) -> str:
-    ovrall_score = predict_score(question, answer)
+async def get_feedback(question:str , answer: str) -> str:
+    overall_score = get_overall_score(question, answer)
 
     prompt = await create_prompt(question, answer, overall_score)
     
@@ -68,6 +70,6 @@ async def get_feedback(ovrall_score: float, question:str , answer: str) -> str:
 #     question = df['question'][1]
 #     answer = df['answer'][1]
 #     overall_score = df['overall'][1]
-#     asyncio.run(get_feedback(overall_score, question, answer))
-#     result = asyncio.run(get_feedback(overall_score, question, answer))
+#     # asyncio.run(get_feedback(question, answer))
+#     result = asyncio.run(get_feedback(question, answer))
 #     print(result)

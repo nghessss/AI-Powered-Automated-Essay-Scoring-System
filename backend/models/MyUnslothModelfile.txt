@@ -1,0 +1,20 @@
+# FROM cần dùng đường dẫn tương đối
+FROM ./gemma-3-4b-essay_feedback-q8_0.gguf
+
+# Template chuẩn cho Gemma Instruct
+TEMPLATE """{{ if .System }}<start_of_turn>user
+{{ .System }}<end_of_turn>
+{{ end }}<start_of_turn>user
+{{ .Prompt }}<end_of_turn>
+<start_of_turn>model
+{{ .Response }}"""
+
+# Các tham số mặc định
+PARAMETER temperature 1
+PARAMETER top_p 0.9
+
+# Token dừng: gộp lại thành list
+PARAMETER stop ["<start_of_turn>", "<end_of_turn>"]
+
+# System prompt mặc định
+SYSTEM """Bạn là một trợ lý AI hữu ích, chuyên đưa ra phản hồi về các bài luận."""

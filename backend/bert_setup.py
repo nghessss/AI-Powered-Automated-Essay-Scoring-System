@@ -8,6 +8,7 @@ from sklearn.preprocessing import StandardScaler
 import torch
 import torch.nn as nn
 import os
+import joblib
 config ={
     "max_seq_length": 768,
     "bert_model_name": "bert-base-uncased",
@@ -26,8 +27,7 @@ def load_scaler(file_path):
     """
     Load the scaler from the given file path
     """
-    with open(file_path, "rb") as f:
-        scaler = pickle.load(f)
+    scaler = joblib.load(file_path)
     return scaler
 
 class BERTWithExtraFeature(nn.Module):
@@ -85,32 +85,50 @@ class BERTWithExtraFeature(nn.Module):
         return output
 
 model = BERTWithExtraFeature()
-checkpoint = torch.load('models/bert_model.pth',map_location='cpu')
+os.environ['TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD'] = '1'
+checkpoint = torch.load('models/MAE_63.pth',map_location='cpu')
 model.load_state_dict(checkpoint['model_state_dict'])
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-scaler = load_scaler('models/scaler_config.pkl')
+scaler = load_scaler('models/scaler_161.pkl')
 
-def tokenize_inputs_pt(question, essays, tokenizer, print_stats=False, max_length=512):
+
+def tokenize_inputs_pt(questions, essays, tokenizer, print_stats=False, max_length=512):
     input_ids_list = []
     attention_masks_list = []
     lengths_token = []
     lengths_sequences = []
+    num_overflow = 0
+    id_list = np.arange(len(questions))
     
-
-    encoding = tokenizer(
-        question, essays,
-        padding="max_length",  # Padding to ensure uniform length
-        truncation=True,  # Ensuring truncation for longer inputs
-        max_length=max_length,  # Optional: set max_length explicitly
-        return_tensors="pt"  # Resturn in tensor format
-    )
-    input_ids = encoding["input_ids"].squeeze(0)
-    attention_mask = encoding["attention_mask"].squeeze(0)
+    for id, q, e in zip(id_list, questions, essays):
+        encoding = tokenizer(
+            q, e,
+            padding="max_length",  # Padding to ensure uniform length
+            truncation=True,  # Ensuring truncation for longer inputs
+            max_length=max_length,  # Optional: set max_length explicitly
+            return_tensors="pt"  # Return in tensor format
+        )
+        input_ids_list.append(encoding["input_ids"].squeeze(0))  # Remove batch dimension
+        attention_masks_list.append(encoding["attention_mask"].squeeze(0))  # Remove batch dimension
         
+        lengths_token.append(len(encoding["input_ids"]))
+
+    if print_stats:
+        print(f"Max length: {max(lengths_token)}")
+        print(f"Min length: {min(lengths_token)}")
+        print(f"Average length: {sum(lengths_token) / len(lengths_token):.2f}")
+        print(f"Number of overflowed sequences: {num_overflow}")
+        print(f"Overflowed sequences ratio: {num_overflow / len(lengths_token):.2%}")
+        for length in lengths_sequences:
+            print(f"Question length: {length[0]}, Essay length: {length[1]} , Score: {length[2]}, ID: {length[3]}")
+
+    # Convert list of tensors into a single tensor
+    input_ids_tensor = torch.stack(input_ids_list, dim=0)  # Stack along batch dimension
+    attention_mask_tensor = torch.stack(attention_masks_list, dim=0)
     
     return {
-        "input_ids": input_ids,
-        "attention_mask": attention_mask,
+        "input_ids": input_ids_tensor,
+        "attention_mask": attention_mask_tensor,
         "lengths_token": lengths_token,
         "lengths_sequences": lengths_sequences,
     }
@@ -137,28 +155,21 @@ def round_to_nearest_half_np(x, method='nearest'):
         raise ValueError("Method must be 'nearest', 'up', or 'down'")
 def get_overall_score(question, answer):
     extra_number = len(question.split()) + len(answer.split())
-    tokenize_output = tokenize_inputs_pt(question, answer, bert_tokenizer)
-    input_ids = tokenize_output["input_ids"].unsqueeze(0)
-    attention_mask = tokenize_output["attention_mask"].unsqueeze(0)
-    
+    tokenize_output = tokenize_inputs_pt([question], [answer],  bert_tokenizer, max_length=512)
+    input_ids = tokenize_output['input_ids'].to(device)
+    attention_mask = tokenize_output['attention_mask'].to(device)
+    extra_number = torch.tensor([extra_number], dtype=torch.float32).to(device)
+    numerical_features_val_std = scaler.transform([extra_number])
+    print(f'numerical_features_val_std = {numerical_features_val_std}')
+    numerical_val_tensor = torch.tensor(numerical_features_val_std, dtype=torch.float32).to(device)
+
+    model.eval()  # Set the model to evaluation mode
     with torch.no_grad():  # No gradient computation during testing
-        input_ids = input_ids.to(device)
-        attention_mask = attention_mask.to(device)
-        extra_number = extra_number.to(device)
-        output = model(input_ids, attention_mask, extra_number)
+        output = model(input_ids, attention_mask, numerical_val_tensor)
         output = output.cpu().numpy()
         score = round_to_nearest_half_np(output, method='nearest')
-    return score
-question = 'Interview form the basic selection criteria for most large companies. However, some people think that interview is not a reliable method of choosing whom to employ and there are better methods. To what extent to you agree or disagree?'
-answer = """On the one hand, many people agree with this statement for many noteworthy reasons. The most remarkable is that the recruiters can get an idea about the personalitty and skills of the potential employees .For instance,when the person is asked about any topic and he answers it in a concise and crisp manner,then the recruiter gets to know he is suitable for the job. Another key reason is that if a candidate is asked about case studies then the recruiters can judge the personality traits of that employee and also the ability to think outside the box.
+    return score[0][0]
 
-On the other hand, other people disagree with this statement for many reasons. They believe that other modes of recruiting like written tests and group discussions will help understand the mindset in a better manner.Written tests help in evaluating the technical or theoretical knowlege of a person.
-
-Group discussions help in getting a grasp of the conversational skills that he/she possesses.For example,in sales and marketing jobs conversational skills play a major role.  
-
- All in all, when all the specific reasons and relevant examples are considered and evaluated,  I strongly  agree with the idea supporting this statement because its benefits outweigh its drawbacks"""
-score = get_overall_score(question, answer)
-print(f"Predicted Score: {score}")
 
 
 

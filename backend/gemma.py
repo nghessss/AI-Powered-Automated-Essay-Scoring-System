@@ -2,6 +2,18 @@ from bert_setup import get_overall_score
 import ollama
 import asyncio
 import pandas as pd
+import httpx
+import asyncio
+# import load_dotenv
+from dotenv import load_dotenv
+import os
+load_dotenv()
+OLLAMA_URL = os.getenv("OLLAMA_URL")
+OLLAMA_HEALTH_ENDPOINT = f"{OLLAMA_URL}/"
+OLLAMA_CHAT_ENDPOINT = f"{OLLAMA_URL}/api/chat"
+RETRY_DELAY = int(os.getenv("RETRY_DELAY"))
+MAX_RETRIES = int(os.getenv("MAX_RETRIES"))
+
 
 async def create_prompt(question: str, essay: str, overall_score: float) -> str:
     prompt = (
@@ -45,31 +57,48 @@ async def create_prompt(question: str, essay: str, overall_score: float) -> str:
     )
     return prompt
 
-async def get_feedback(question:str , answer: str) -> str:
-    overall_score = get_overall_score(question, answer)
 
+  # seconds
+
+async def wait_for_ollama():
+    async with httpx.AsyncClient() as client:
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = await client.get(OLLAMA_HEALTH_ENDPOINT)
+                if response.status_code == 200:
+                    return True
+            except httpx.RequestError:
+                pass
+            print(f"Waiting for Ollama to be ready... (attempt {attempt + 1})")
+            await asyncio.sleep(RETRY_DELAY)
+        print("Ollama is not available after several retries.")
+        return False
+
+async def get_feedback(question: str, answer: str) -> str:
+    is_ready = await wait_for_ollama()
+    if not is_ready:
+        return "Ollama server is not responding."
+
+    overall_score = get_overall_score(question, answer)
     prompt = await create_prompt(question, answer, overall_score)
-    
-    response = ollama.chat(
-        model='gemma-3-essay',
-        messages=[
+
+    payload = {
+        "model": "gemma-3-essay",
+        "messages": [
             {"role": "user", "content": prompt}
         ],
-        stream=False,
-        options={
+        "stream": False,
+        "options": {
             "num_predict": 2048
         }
-    )
+    }
 
-    generated_text = response['message']['content']
-
-    return generated_text
-
-# if __name__ == "__main__":
-#     df = pd.read_csv('55_samples.csv')
-#     question = df['question'][1]
-#     answer = df['answer'][1]
-#     overall_score = df['overall'][1]
-#     # asyncio.run(get_feedback(question, answer))
-#     result = asyncio.run(get_feedback(question, answer))
-#     print(result)
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(OLLAMA_CHAT_ENDPOINT, json=payload)
+            response.raise_for_status()
+            generated_text = response.json()["message"]["content"]
+            return generated_text
+        except httpx.HTTPError as e:
+            print(f"Error calling Ollama: {e}")
+            return "Failed to get feedback from Ollama."

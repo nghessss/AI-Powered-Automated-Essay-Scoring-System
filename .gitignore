@@ -147,5 +147,5 @@ cython_debug/
 # model
 *.gguf
 *.h5
-
+.DS_Store
 

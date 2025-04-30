@@ -1,13 +1,12 @@
 import pandas as pd
 from transformers import  BertTokenizer
 import numpy as np
-from sklearn.preprocessing import StandardScaler
 import torch
 import os
 import joblib
 from huggingface_hub import login, hf_hub_download
 from dotenv import load_dotenv
-from BERTWithExtraFeature import BERTWithExtraFeature, tokenize_inputs_pt, round_to_nearest_half_np, preprocess_inputs_pt
+from BERTWithExtraFeature import BERTWithExtraFeature, round_to_nearest_half_np, preprocess_inputs_pt
 # from transformers import AutoConfig
 load_dotenv()
 login(os.getenv("IELTS_HUGGINGFACE_API_KEY"))

@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
-from transformers import BertModel, BertTokenizer
+from transformers import BertModel
 import numpy as np
+from sklearn.preprocessing import StandardScaler
 class BERTWithExtraFeature(nn.Module):
     def __init__(self, pretrained_model_name='bert-base-uncased', dropout_prob=0.2, num_trainable_layers=1):
         super(BERTWithExtraFeature, self).__init__()
@@ -55,7 +56,7 @@ class BERTWithExtraFeature(nn.Module):
         output = self.output_layer(x)
 
         return output
-def preprocess_inputs_pt(question, answer, bert_tokenizer, scaler, device, max_length=512):
+def preprocess_inputs_pt(question, answer, bert_tokenizer, scaler: StandardScaler, device, max_length=512):
     extra_number = len(question.split()) + len(answer.split())
     tokenize_output = tokenize_inputs_pt([question], [answer],  bert_tokenizer, max_length=512)
     input_ids = tokenize_output['input_ids'].to(device)

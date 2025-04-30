@@ -1,0 +1,52 @@
+# Use base image from Ollama
+FROM --platform=linux/amd64 ollama/ollama:latest
+
+# Change Ollama port to 8080 for cloud compatibility
+ENV OLLAMA_HOST=0.0.0.0:8080
+
+# Store model weights in a custom dir
+ENV OLLAMA_MODELS=/models
+
+# Don't unload models from memory
+ENV OLLAMA_KEEP_ALIVE=-1
+
+# Reduce log noise
+ENV OLLAMA_DEBUG=false
+
+# Create models directory
+WORKDIR /models
+
+# Download GGUF model
+RUN apt-get update && \
+    apt-get install -y wget git-lfs dos2unix && \
+    git lfs install && \
+    wget -O gemma-3-4b-essay_feedback-q8_0.gguf \
+      https://huggingface.co/huyg1108/gemma-3-4b-essay_feedback-GGUF/resolve/main/gemma-3-4b-essay_feedback-q8_0.gguf && \
+    rm -rf /var/lib/apt/lists/*
+
+# Add custom Modelfile
+RUN echo '\
+FROM gemma-3-4b-essay_feedback-q8_0.gguf\n\
+\n\
+TEMPLATE """{{ if .System }}<start_of_turn>user\n\
+{{ .System }}<end_of_turn>\n\
+{{ end }}<start_of_turn>user\n\
+{{ .Prompt }}<end_of_turn>\n\
+<start_of_turn>model\n\
+{{ .Response }}"""\n\
+\n\
+PARAMETER temperature 1\n\
+PARAMETER top_p 0.9\n\
+PARAMETER stop ["<start_of_turn>", "<end_of_turn>"]\n\
+\n\
+SYSTEM """Bạn là một trợ lý AI hữu ích, chuyên đưa ra phản hồi về các bài luận."""\n\
+' > MyUnslothModelfile.txt
+
+# Preload the model into the image
+RUN ollama serve & sleep 5 && ollama create gemma-3-essay -f MyUnslothModelfile.txt && pkill ollama
+
+# Expose Ollama API
+EXPOSE 8080
+
+# Start Ollama
+ENTRYPOINT ["ollama", "serve"]

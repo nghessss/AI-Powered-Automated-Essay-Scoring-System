@@ -22,8 +22,5 @@ RUN pip install pip==25.1 setuptools wheel && \
 
 COPY . .
 
-# 9. Expose the FastAPI port
-EXPOSE 8000
-
 # 10. Start Ollama and your FastAPI app
 CMD ["python", "main.py"]

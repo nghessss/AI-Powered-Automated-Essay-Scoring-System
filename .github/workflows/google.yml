@@ -81,5 +81,5 @@ jobs:
           docker push "${BACKEND_TAG}"
 
           echo "Building database container: $OLLAMA_TAG"
-          docker build -f database/Dockerfile.ollama --tag "${OLLAMA_TAG}" ollama/
+          docker build -f ollama/Dockerfile.ollama --tag "${OLLAMA_TAG}" ollama/
           docker push "${OLLAMA_TAG}"

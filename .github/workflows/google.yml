@@ -11,7 +11,7 @@ jobs:
       PROJECT_ID: '${{ secrets.PROJECT_ID }}'  # TODO: update to your Google Cloud project ID
       GAR_LOCATION: 'asia-southeast2'  # TODO: update to your region
       GKE_CLUSTER: 'ielts-cluster'  # TODO: update to your cluster name
-      GKE_ZONE: 'asia-southeast1-a'  # TODO: update to your cluster zone
+      GKE_ZONE: 'asia-southeast2'  # TODO: update to your cluster zone
       DEPLOYMENT_NAME_1: 'ielts-backend'  # TODO: update to your deployment name
       DEPLOYMENT_NAME_2: 'ielts-ollama-custom'  # TODO: update to your deployment name
       REPOSITORY: 'ielts-repo'  # TODO: update to your Artifact Registry docker repository name

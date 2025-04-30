@@ -72,8 +72,8 @@ jobs:
       
           # Set your build arguments
           BUILD_ARGS=(
-            --build-arg IELTS_HUGGINGFACE_API_KEY="${{ secret.IELTS_HUGGINGFACE_API_KEY }}"
-            --build-arg OLLAMA_URL="${{ secret.IELTS_HUGGINGFACE_API_KEY }}"
+            --build-arg IELTS_HUGGINGFACE_API_KEY="${{ secrets.IELTS_HUGGINGFACE_API_KEY }}"
+            --build-arg OLLAMA_URL="${{ localhost:8080 }}"
             
           )
 

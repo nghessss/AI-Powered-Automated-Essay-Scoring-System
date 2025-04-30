@@ -73,8 +73,7 @@ jobs:
           # Set your build arguments
           BUILD_ARGS=(
             --build-arg IELTS_HUGGINGFACE_API_KEY="${{ secrets.IELTS_HUGGINGFACE_API_KEY }}"
-            --build-arg OLLAMA_URL="${{ localhost:8080 }}"
-            
+            --build-arg OLLAMA_URL=localhost:8080
           )
 
           echo "Building frontend container: $BACKEND_TAG"

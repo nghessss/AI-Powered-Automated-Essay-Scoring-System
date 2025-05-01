@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
-import { AlertCircle, BookOpen, Lightbulb, BarChart3, AlertTriangle } from "lucide-react"
+import { AlertCircle, BookOpen, Lightbulb } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { Progress } from "@/components/ui/progress"
 
 export default function IeltsTask2Grader() {
   const [text, setText] = useState("")
@@ -22,68 +21,10 @@ export default function IeltsTask2Grader() {
     grammaticalRange: 6,
   })
 
-  // Mock data for word occurrence - shortened words for better display
-  const [wordOccurrence, setWordOccurrence] = useState([
-    { word: "however", count: 5 },
-    { word: "therefore", count: 3 },
-    { word: "society", count: 4 },
-    { word: "education", count: 2 },
-    { word: "develop", count: 2 },
-  ])
-
-  // Mock data for grammar mistakes
-  const [grammarMistakes, setGrammarMistakes] = useState({
-    total: 8,
-    types: [
-      { type: "Subject-verb agreement", count: 3 },
-      { type: "Article usage", count: 2 },
-      { type: "Tense consistency", count: 1 },
-      { type: "Preposition errors", count: 1 },
-      { type: "Run-on sentences", count: 1 },
-    ],
-  })
-
   const handleGrade = () => {
     // In a real application, this would call an API to analyze the text
-    // For demo purposes, we're just setting isGraded to true and using mock data
-
-    // Mock word analysis (in a real app, this would analyze the actual text)
-    analyzeText(text)
-
+    // For demo purposes, we're just setting isGraded to true
     setIsGraded(true)
-  }
-
-  const analyzeText = (text: string) => {
-    // This is a simplified mock analysis
-    // In a real application, you would do proper text analysis here
-
-    // Mock word frequency analysis
-    const words = text
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((word) => word.length > 3)
-    const wordCount: Record<string, number> = {}
-
-    words.forEach((word) => {
-      // Remove punctuation
-      const cleanWord = word.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "")
-      if (cleanWord.length > 3) {
-        wordCount[cleanWord] = (wordCount[cleanWord] || 0) + 1
-      }
-    })
-
-    // Convert to array and sort by count
-    const wordArray = Object.entries(wordCount)
-      .map(([word, count]) => ({ word, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5) // Limit to 5 words for better display
-
-    if (wordArray.length > 0) {
-      setWordOccurrence(wordArray)
-    }
-
-    // In a real app, you would analyze grammar here
-    // For now, we'll use the mock data
   }
 
   const handleReset = () => {
@@ -178,9 +119,6 @@ export default function IeltsTask2Grader() {
         return criteria
     }
   }
-
-  // Colors for the word usage chart
-  const barColors = ["#4f46e5", "#6366f1", "#818cf8", "#a5b4fc", "#c7d2fe"]
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -292,73 +230,6 @@ export default function IeltsTask2Grader() {
                     {criteria !== "grammaticalRange" && <Separator className="my-4" />}
                   </div>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-blue-500" />
-                Word Usage Analysis
-              </CardTitle>
-              <CardDescription>Frequency of words used in your essay</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mt-4">
-                {wordOccurrence.map((item, index) => (
-                  <div key={index} className="mb-3">
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm">{item.word}</span>
-                      <span className="text-sm font-medium">{item.count}</span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${(item.count / Math.max(...wordOccurrence.map((w) => w.count))) * 100}%`,
-                          backgroundColor: barColors[index % barColors.length],
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-amber-500" />
-                Grammar Mistakes
-              </CardTitle>
-              <CardDescription>Analysis of grammatical errors in your essay</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">Total Grammar Mistakes</span>
-                  <Badge variant="destructive">{grammarMistakes.total}</Badge>
-                </div>
-                <Progress value={Math.min(100, grammarMistakes.total * 10)} className="h-2" />
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium">Breakdown by Error Type</h3>
-                <div className="grid gap-3">
-                  {grammarMistakes.types.map((mistake, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></div>
-                        <span className="truncate">{mistake.type}</span>
-                      </div>
-                      <Badge variant="outline" className="ml-2 flex-shrink-0">
-                        {mistake.count}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
               </div>
             </CardContent>
           </Card>

@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ielts-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ielts-backend
+  template:
+    metadata:
+      labels:
+        app: ielts-backend
+    spec:
+      containers:
+        - name: ielts-backend
+          image: backend_image
+          imagePullPolicy: Always  
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: secrets

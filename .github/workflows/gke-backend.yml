@@ -14,7 +14,6 @@ jobs:
       GKE_CLUSTER: 'ielts-cluster'  # TODO: update to your cluster name
       GKE_ZONE: 'asia-southeast2'  # TODO: update to your cluster zone
       DEPLOYMENT_NAME_1: 'ielts-backend'  # TODO: update to your deployment name
-      DEPLOYMENT_NAME_2: 'ielts-ollama-custom'  # TODO: update to your deployment name
       REPOSITORY: 'ielts-repo'  # TODO: update to your Artifact Registry docker repository name
       WORKLOAD_IDENTITY_PROVIDER: '${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}'
     name: 'BACKEND Setup, Build, Publish, and Deploy'
@@ -80,5 +79,23 @@ jobs:
           echo "Building frontend container: $BACKEND_TAG"
           docker build "${BUILD_ARGS[@]}" -f backend/Dockerfile.backend --tag "${BACKEND_TAG}" backend/
           docker push "${BACKEND_TAG}"
+      - name: 'Deploy to GKE'
+        run: |-
+          set -x  # Enable command tracing for debugging
+          gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $PROJECT_ID
+          # apply secrets by using kubectl command
+          kubectl create secret generic secrets \
+            --from-literal=IELTS_HUGGINGFACE_API_KEY="${{ secrets.IELTS_HUGGINGFACE_API_KEY }}" \
+            --from-literal=OLLAMA_URL="${{ secrets.OLLAMA_URL }}" \
+            --from-literal=MAX_RETRIES="${{ secrets.MAX_RETRIES }}" \
+            --from-literal=RETRY_DELAY="${{ secrets.RETRY_DELAY }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          sed -i "s|image: backend_image|image: ${BACKEND_TAG}|" k8s/base/deployment.yaml
+          kubectl apply -f k8s/base/deployment.yaml
+          kubectl apply -f k8s/base/service.yaml
+          # Restart the deployment to apply the new image
+          kubectl rollout restart deployment/${{ env.DEPLOYMENT_NAME_1 }}
+          
 
           

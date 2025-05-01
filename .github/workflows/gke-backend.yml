@@ -1,10 +1,11 @@
-name: 'Build and Deploy to GKE'
+name: 'BACKEND Build and Deploy to GKE'
 
 on:
   push:
     branches:
       - 'main'
-
+    paths:
+      - 'backend/**'
 jobs:
   setup-build-publish-deploy:
     env:
@@ -16,7 +17,7 @@ jobs:
       DEPLOYMENT_NAME_2: 'ielts-ollama-custom'  # TODO: update to your deployment name
       REPOSITORY: 'ielts-repo'  # TODO: update to your Artifact Registry docker repository name
       WORKLOAD_IDENTITY_PROVIDER: '${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}'
-    name: 'Setup, Build, Publish, and Deploy'
+    name: 'BACKEND Setup, Build, Publish, and Deploy'
     runs-on: 'ubuntu-latest'
     environment: 'production'
 
@@ -73,13 +74,11 @@ jobs:
           # Set your build arguments
           BUILD_ARGS=(
             --build-arg IELTS_HUGGINGFACE_API_KEY="${{ secrets.IELTS_HUGGINGFACE_API_KEY }}"
-            --build-arg OLLAMA_URL=localhost:8080
+            --build-arg OLLAMA_URL="${{secrets.OLLAMA_URL}}"
           )
 
           echo "Building frontend container: $BACKEND_TAG"
           docker build "${BUILD_ARGS[@]}" -f backend/Dockerfile.backend --tag "${BACKEND_TAG}" backend/
           docker push "${BACKEND_TAG}"
 
-          echo "Building database container: $OLLAMA_TAG"
-          docker build -f ollama/Dockerfile.ollama --tag "${OLLAMA_TAG}" ollama/
-          docker push "${OLLAMA_TAG}"
+          

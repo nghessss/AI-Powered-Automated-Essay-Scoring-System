@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import os
 load_dotenv()
 OLLAMA_URL = os.getenv("OLLAMA_URL")
+print(OLLAMA_URL)
 OLLAMA_HEALTH_ENDPOINT = f"{OLLAMA_URL}/"
 OLLAMA_CHAT_ENDPOINT = f"{OLLAMA_URL}/api/chat"
 RETRY_DELAY = int(os.getenv("RETRY_DELAY"))

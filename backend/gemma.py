@@ -65,6 +65,7 @@ async def wait_for_ollama():
     async with httpx.AsyncClient() as client:
         for attempt in range(MAX_RETRIES):
             try:
+                print(f"calling to ollama health endpoint {OLLAMA_HEALTH_ENDPOINT}")
                 response = await client.get(OLLAMA_HEALTH_ENDPOINT)
                 if response.status_code == 200:
                     return True

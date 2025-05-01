@@ -87,32 +87,36 @@ async def get_feedback(question: str, answer: str) -> str:
         return "Ollama server is not responding."
 
     overall_score = get_overall_score(question, answer)
-    prompt = await create_prompt(question, answer, overall_score)
-
+    # prompt = await create_prompt(question, answer, overall_score)
+    prompt = f"Give feedback on this IELTS essay: {answer}"
     payload = {
         "model": "gemma-3-essay",
         "messages": [
             {"role": "user", "content": prompt}
         ],
-        "stream": False,
+        "stream": True,
         "options": {
             "num_predict": 2048
         }
     }
 
     # Allow up to 2 minutes total timeout, 10 sec for connection
-    timeout = httpx.Timeout(120.0, connect=10.0)
+    timeout = httpx.Timeout(180.0, connect=10.0)
 
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
-            start = time.time()
-            response = await client.post(OLLAMA_CHAT_ENDPOINT, json=payload)
-            duration = time.time() - start
-            print(f"Ollama responded in {duration:.2f} seconds")
-
-            response.raise_for_status()
-            generated_text = response.json()["message"]["content"]
-            return generated_text
+            async with client.stream("POST", OLLAMA_CHAT_ENDPOINT, json=payload) as response:
+                response.raise_for_status()
+                full_text = ""
+                async for chunk in response.aiter_text():
+                    print(chunk, end="", flush=True)  # Or update your UI incrementally
+                    # += chunk content
+                    full_text += chunk
+                return full_text
         except httpx.HTTPError as e:
             print(f"Error calling Ollama: {e}")
             return "Failed to get feedback from Ollama."
+# test get_feedback
+question= "What are the advantages and disadvantages of studying abroad?"
+answer = "Studying abroad has both advantages and disadvantages. On one hand, it provides students with the opportunity to experience a new culture, learn a new language, and gain a global perspective. On the other hand, it can be expensive and may lead to feelings of homesickness and isolation."
+print(asyncio.run(get_feedback(question, answer)))

@@ -4,11 +4,12 @@ import { useState } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { AlertCircle, BookOpen, Lightbulb } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
+import {} from "@/app/api/grade-essay/route"
+import HtmlContentDisplay from "@/components/html-content-display"
 
 export default function IeltsTask2Grader() {
   const [text, setText] = useState("")
@@ -21,10 +22,37 @@ export default function IeltsTask2Grader() {
     grammaticalRange: 6,
   })
 
-  const handleGrade = () => {
-    // In a real application, this would call an API to analyze the text
-    // For demo purposes, we're just setting isGraded to true
-    setIsGraded(true)
+  const handleGrade = async () => {
+    try {
+      setIsGraded(true)
+
+      // In a real application, you would send the essay text and question to your API
+      const response = await fetch("/api/grade-essay", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to grade essay: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log("Grading result:", data)
+
+      // Update scores based on API response
+      // This is just a placeholder - in a real app, you'd use the actual scores from the API
+      setScores({
+        taskAchievement: 7,
+        coherenceCohesion: 6.5,
+        lexicalResource: 7.5,
+        grammaticalRange: 6,
+      })
+    } catch (error) {
+      console.error("Error grading essay:", error)
+      // You might want to show an error message to the user here
+    }
   }
 
   const handleReset = () => {
@@ -211,18 +239,9 @@ export default function IeltsTask2Grader() {
                       <label className="text-sm font-medium">{getCriteriaLabel(criteria)}</label>
                       <span className="text-sm font-bold">{score}</span>
                     </div>
-                    <Slider
-                      value={[score]}
-                      min={5}
-                      max={9}
-                      step={1}
-                      onValueChange={(value) =>
-                        setScores({
-                          ...scores,
-                          [criteria]: value[0],
-                        })
-                      }
-                    />
+                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary" style={{ width: `${((score - 5) / 4) * 100}%` }}></div>
+                    </div>
                     <Alert className="mt-2">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>{getFeedback(criteria, score)}</AlertDescription>
@@ -233,6 +252,8 @@ export default function IeltsTask2Grader() {
               </div>
             </CardContent>
           </Card>
+
+          <HtmlContentDisplay apiEndpoint="/api/detailed-analysis" title="Detailed Essay Analysis" className="mt-6" />
 
           <Card>
             <CardHeader>

@@ -1,13 +1,11 @@
 from bert_setup import get_overall_score
-import ollama
 import asyncio
-import pandas as pd
 import httpx
 import asyncio
-# import load_dotenv
 from dotenv import load_dotenv
 import os
 import json
+import httpx
 load_dotenv()
 OLLAMA_URL = os.getenv("OLLAMA_URL")
 print(OLLAMA_URL)
@@ -16,8 +14,6 @@ OLLAMA_CHAT_ENDPOINT = f"{OLLAMA_URL}/api/chat"
 print('OLLAMA_CHAT_ENDPOINT', OLLAMA_CHAT_ENDPOINT)
 RETRY_DELAY = int(os.getenv("RETRY_DELAY"))
 MAX_RETRIES = int(os.getenv("MAX_RETRIES"))
-
-
 
 async def create_prompt(question: str, essay: str, overall_score: float) -> str:
     prompt = (
@@ -62,9 +58,6 @@ async def create_prompt(question: str, essay: str, overall_score: float) -> str:
     )
     return prompt
 
-
-  # seconds
-
 async def wait_for_ollama():
     async with httpx.AsyncClient() as client:
         for attempt in range(MAX_RETRIES):
@@ -79,9 +72,6 @@ async def wait_for_ollama():
             await asyncio.sleep(RETRY_DELAY)
         print("Ollama is not available after several retries.")
         return False
-
-import httpx
-import time
 
 async def get_feedback(question: str, answer: str) -> str:
     is_ready = await wait_for_ollama()
@@ -101,10 +91,9 @@ async def get_feedback(question: str, answer: str) -> str:
             "num_predict": 2048
         }
     }
-
-    # Allow up to 2 minutes total timeout, 10 sec for connection
+    
+    # Set a timeout for the request
     timeout = httpx.Timeout(180.0, connect=10.0)
-
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
             response = await client.post(OLLAMA_CHAT_ENDPOINT, json=payload)
@@ -115,9 +104,7 @@ async def get_feedback(question: str, answer: str) -> str:
             for line in response.text.splitlines():
                 data = json.loads(line)
                 full_text += data["message"]["content"]
-
             return full_text
-
         except httpx.HTTPError as e:
             print(f"Error calling Ollama: {e}")
             return "Failed to get feedback from Ollama."

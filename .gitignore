@@ -148,4 +148,4 @@ cython_debug/
 *.gguf
 *.h5
 .DS_Store
-
+secrets.*

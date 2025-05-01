@@ -78,6 +78,9 @@ async def wait_for_ollama():
         print("Ollama is not available after several retries.")
         return False
 
+import httpx
+import time
+
 async def get_feedback(question: str, answer: str) -> str:
     is_ready = await wait_for_ollama()
     if not is_ready:
@@ -97,9 +100,16 @@ async def get_feedback(question: str, answer: str) -> str:
         }
     }
 
-    async with httpx.AsyncClient() as client:
+    # Allow up to 2 minutes total timeout, 10 sec for connection
+    timeout = httpx.Timeout(120.0, connect=10.0)
+
+    async with httpx.AsyncClient(timeout=timeout) as client:
         try:
+            start = time.time()
             response = await client.post(OLLAMA_CHAT_ENDPOINT, json=payload)
+            duration = time.time() - start
+            print(f"Ollama responded in {duration:.2f} seconds")
+
             response.raise_for_status()
             generated_text = response.json()["message"]["content"]
             return generated_text

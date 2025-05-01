@@ -7,6 +7,7 @@ import asyncio
 # import load_dotenv
 from dotenv import load_dotenv
 import os
+import json
 load_dotenv()
 OLLAMA_URL = os.getenv("OLLAMA_URL")
 print(OLLAMA_URL)
@@ -28,6 +29,7 @@ async def create_prompt(question: str, essay: str, overall_score: float) -> str:
         f"As an IELTS examiner, evaluate the following essay based on the official IELTS scoring criteria "
         f"and the given overall band score WITHOUT changing it.\n\n"
         f"Return your evaluation strictly in the following JSON format:\n\n"
+        f"The breakdown score has to be consistent with the overall band score, and is an integer, and the average need to be equal to {str(overall_score)} .\n"
         f"{{\n"
         f'  "criteria": {{\n'
         f'    "task_response": {{\n'
@@ -87,8 +89,8 @@ async def get_feedback(question: str, answer: str) -> str:
         return "Ollama server is not responding."
 
     overall_score = get_overall_score(question, answer)
-    # prompt = await create_prompt(question, answer, overall_score)
-    prompt = f"Give feedback on this IELTS essay: {answer}"
+    prompt = await create_prompt(question, answer, overall_score)
+    # prompt = f"Give feedback on this IELTS essay: {answer}"
     payload = {
         "model": "gemma-3-essay",
         "messages": [
@@ -105,18 +107,17 @@ async def get_feedback(question: str, answer: str) -> str:
 
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
-            async with client.stream("POST", OLLAMA_CHAT_ENDPOINT, json=payload) as response:
-                response.raise_for_status()
-                full_text = ""
-                async for chunk in response.aiter_text():
-                    print(chunk, end="", flush=True)  # Or update your UI incrementally
-                    # += chunk content
-                    full_text += chunk
-                return full_text
+            response = await client.post(OLLAMA_CHAT_ENDPOINT, json=payload)
+            response.raise_for_status()
+            
+            # If the API returns streamed chunks as JSON lines, split and join
+            full_text = ""
+            for line in response.text.splitlines():
+                data = json.loads(line)
+                full_text += data["message"]["content"]
+
+            return full_text
+
         except httpx.HTTPError as e:
             print(f"Error calling Ollama: {e}")
             return "Failed to get feedback from Ollama."
-# test get_feedback
-question= "What are the advantages and disadvantages of studying abroad?"
-answer = "Studying abroad has both advantages and disadvantages. On one hand, it provides students with the opportunity to experience a new culture, learn a new language, and gain a global perspective. On the other hand, it can be expensive and may lead to feelings of homesickness and isolation."
-print(asyncio.run(get_feedback(question, answer)))

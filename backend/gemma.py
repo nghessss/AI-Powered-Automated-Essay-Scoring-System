@@ -12,8 +12,10 @@ OLLAMA_URL = os.getenv("OLLAMA_URL")
 print(OLLAMA_URL)
 OLLAMA_HEALTH_ENDPOINT = f"{OLLAMA_URL}/"
 OLLAMA_CHAT_ENDPOINT = f"{OLLAMA_URL}/api/chat"
+print('OLLAMA_CHAT_ENDPOINT', OLLAMA_CHAT_ENDPOINT)
 RETRY_DELAY = int(os.getenv("RETRY_DELAY"))
 MAX_RETRIES = int(os.getenv("MAX_RETRIES"))
+
 
 
 async def create_prompt(question: str, essay: str, overall_score: float) -> str:

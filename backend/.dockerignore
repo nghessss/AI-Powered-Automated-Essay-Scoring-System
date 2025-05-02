@@ -1,0 +1,31 @@
+# Don't copy virtual environments
+venv/
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.so
+
+# Bytecode cache
+*.py[cod]
+__pycache__/
+
+# Git
+.git/
+.gitignore
+
+# Docker-related
+Dockerfile*
+docker-compose.yml
+
+# Wheels
+wheels/
+
+# OS & Editor files
+.DS_Store
+*.swp
+*.swo
+*.bak
+*.tmp
+.idea/
+.vscode/

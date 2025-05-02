@@ -1,9 +1,26 @@
-# from bert_setup import predict_score
 import asyncio
-import ollama
-import pandas as pd
-from google import genai
+from bert_setup import get_overall_score
+import httpx
+from dotenv import load_dotenv
+import os
 import json
+import httpx
+from google import genai
+import pandas as pd
+import ollama
+
+load_dotenv()
+OLLAMA_URL = os.getenv("OLLAMA_URL")
+print(OLLAMA_URL)
+OLLAMA_HEALTH_ENDPOINT = f"{OLLAMA_URL}/"
+OLLAMA_CHAT_ENDPOINT = f"{OLLAMA_URL}/api/chat"
+print('OLLAMA_CHAT_ENDPOINT', OLLAMA_CHAT_ENDPOINT)
+RETRY_DELAY = int(os.getenv("RETRY_DELAY"))
+MAX_RETRIES = int(os.getenv("MAX_RETRIES"))
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY_2 = os.getenv("GEMINI_API_KEY_2")
+BAND_DISCRIPTIOR_FILE = os.getenv("BAND_DISCRIPTIOR_FILE")
 
 async def create_evaluation_prompt(question: str, essay: str, overall_score: float) -> str:
     prompt = (
@@ -99,21 +116,37 @@ async def create_constructive_feedback_prompt(question: str, essay: str, overall
 
 
 async def get_evaluation_feedback(user_id: str, overall_score: float, question: str , answer: str, client) -> str:
-    print('1')
     evaluation_prompt = await create_evaluation_prompt(question, answer, overall_score)
     
-    def run_ollama():
-        return ollama.chat(
-            model='gemma-3-essay',
-            messages=[
-                {"role": "user", "content": evaluation_prompt}
-            ],
-            stream=False,
-            options={"num_predict": 1024}
-        )
+    payload = {
+        "model": "gemma-3-essay",
+        "messages": [
+            {"role": "user", "content": evaluation_prompt}
+        ],
+        "stream": True,
+        "options": {
+            "num_predict": 2048
+        }
+    }
 
-    evaluation_response = await asyncio.to_thread(run_ollama)
-    evaluation_text = evaluation_response['message']['content']
+    timeout = httpx.Timeout(180.0, connect=10.0)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as http_client:
+            response = await http_client.post(OLLAMA_CHAT_ENDPOINT, json=payload)
+            response.raise_for_status()
+
+            # Ghép nội dung trả về dạng JSON line (stream)
+            evaluation_text = ""
+            for line in response.text.splitlines():
+                try:
+                    data = json.loads(line)
+                    evaluation_text += data["message"]["content"]
+                except Exception:
+                    continue
+
+    except httpx.HTTPError as e:
+        print(f"Error calling Ollama: {e}")
+        return "Failed to get feedback from Ollama."
 
     gemini_prompt = (
         f"You are a strict JSON fixer and formatter.\n"
@@ -139,7 +172,6 @@ async def get_evaluation_feedback(user_id: str, overall_score: float, question: 
 
 
 async def get_constructive_feedback(user_id: str, overall_score: float, question: str , answer: str, client, band_descriptors) -> str:
-    print('2')
     constructive_prompt = await create_constructive_feedback_prompt(question, answer, overall_score)
 
     def run_gemini():
@@ -153,48 +185,78 @@ async def get_constructive_feedback(user_id: str, overall_score: float, question
     return constructive_text
 
 
-def save_feedback_outputs(user_id: str, overall_score: float, evaluation_text: str, constructive_text: str) -> dict:
+# Hàm thay ngoặc cong thành ngoặc thẳng
+def normalize_quotes(text):
+    replacements = {
+        '“': '"', '”': '"',
+        '‘': "'", '’': "'"
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
+
+
+# Hàm loại bỏ ```json ... ```
+def strip_json_fence(text):
+    lines = text.strip().splitlines()
+    lines = [line for line in lines if not line.strip().startswith("```")]
+    return "\n".join(lines)
+
+def read_json_from_string(text: str) -> dict:
+    """
+    Nhận vào một chuỗi có chứa JSON (có thể có fence ```json``` hoặc ngoặc cong),
+    rồi làm sạch và parse thành dict.
+    Trả về:
+      - valid_json: True/False
+      - top_keys: danh sách key ở cấp cao nhất (nếu valid_json)
+      - parsed: object đã parse (nếu valid_json)
+      - error: lỗi decode (nếu invalid)
+    """
+    # Làm sạch dấu ngoặc “ ” trở thành " và loại bỏ fence ``` 
+    cleaned = normalize_quotes(strip_json_fence(text))
     try:
-        # Lưu raw evaluation text
-        with open("evaluation_feedback.txt", "w", encoding="utf-8") as f:
-            f.write(evaluation_text)
+        parsed = json.loads(cleaned)
+        return {
+            "valid_json": True,
+            "top_keys": list(parsed.keys()),
+            "parsed": parsed
+        }
+    except json.JSONDecodeError as e:
+        return {
+            "valid_json": False,
+            "error": str(e)
+        }
 
-        # Lưu raw constructive feedback
-        with open("constructive_feedback.txt", "w", encoding="utf-8") as f:
-            f.write(constructive_text)
+async def get_feedback(question: str, answer: str) -> dict:
+    """
+    Compute overall score and return merged evaluation + constructive feedback.
+    """
+    # 1. Compute IELTS score
+    overall_score = float(get_overall_score(question, answer))
+    user_id = "test_user_id"  # Replace with actual user ID
 
-        # Lưu user_id và overall_score vào id_score.txt
-        with open("id_score.txt", "w", encoding="utf-8") as f:
-            f.write(f"{user_id}\n{overall_score}\n")
+    # 2. Initialize clients
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    client_2 = genai.Client(api_key=GEMINI_API_KEY_2)
+    band_descriptors = client.files.upload(file=BAND_DISCRIPTIOR_FILE)
 
-        return {"success": True}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-async def main():
-    df = pd.read_csv('55_samples.csv')
-    question = df['question'][34]
-    answer = df['answer'][34]
-    overall_score = df['overall'][34]
-    # overall_score = predict_score(question, answer)
-    user_id = "1234"
-
-    client = genai.Client(api_key="AIzaSyChSaXfxSdk_Yei591wuQCvY8ueRRaZDtU")
-    client_2 = genai.Client(api_key="AIzaSyDz9BAztne9RYsKygNqR8dFcpn5rwjx-n4")
-    band_descriptors = client.files.upload(file="Writing-Band-descriptors-Task-2.pdf")
-
-    # 🔁 Chạy 2 hàm đồng thời
     evaluation_task = get_evaluation_feedback(user_id, overall_score, question, answer, client_2)
     constructive_task = get_constructive_feedback(user_id, overall_score, question, answer, client, band_descriptors)
 
     evaluation_text, constructive_text = await asyncio.gather(evaluation_task, constructive_task)
 
-    save_feedback_outputs(
-        user_id=user_id,
-        overall_score=overall_score,
-        evaluation_text=evaluation_text,
-        constructive_text=constructive_text
-    )
+    # 5. Parse and merge
+    eval_res = read_json_from_string(evaluation_text)
+    const_res = read_json_from_string(constructive_text)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    if not eval_res["valid_json"]:
+        raise ValueError(f"Evaluation JSON parse error: {eval_res['error']}")
+    if not const_res["valid_json"]:
+        raise ValueError(f"Constructive JSON parse error: {const_res['error']}")
+
+    return {
+        "user_id": user_id,
+        "overall_score": overall_score,
+        "evaluation_feedback": eval_res["parsed"],
+        "constructive_feedback": const_res["parsed"]
+    }

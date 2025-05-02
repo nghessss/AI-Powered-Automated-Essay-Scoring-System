@@ -67,9 +67,6 @@ jobs:
           export DOCKER_BUILDKIT=1
           export BUILDKIT_PROGRESS=plain
           BACKEND_TAG="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/ielts-backend:latest"
-          OLLAMA_TAG="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/ielts-ollama-custom:latest"
-
-      
           # Set your build arguments
           BUILD_ARGS=(
             --build-arg IELTS_HUGGINGFACE_API_KEY="${{ secrets.IELTS_HUGGINGFACE_API_KEY }}"
@@ -90,7 +87,7 @@ jobs:
             --from-literal=MAX_RETRIES="${{ secrets.MAX_RETRIES }}" \
             --from-literal=RETRY_DELAY="${{ secrets.RETRY_DELAY }}" \
             --dry-run=client -o yaml | kubectl apply -f -
-
+          BACKEND_TAG="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/ielts-backend:latest"
           sed -i "s|image: backend_image|image: ${BACKEND_TAG}|" k8s/base/deployment.yaml
           kubectl apply -f k8s/base/deployment.yaml
           kubectl apply -f k8s/base/service.yaml

@@ -6,6 +6,8 @@ on:
       - 'main'
     paths:
       - 'backend/**'
+      - 'k8s/base/**'
+      - '.github/workflows/gke-backend.yml'
 jobs:
   setup-build-publish-deploy:
     env:

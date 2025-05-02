@@ -5,6 +5,10 @@ import pandas as pd
 import re
 import torch
 from transformers import AutoTokenizer, T5ForConditionalGeneration
+# initialize the model and tokenizer
+device = "cuda" if torch.cuda.is_available() else "cpu"
+tokenizer = AutoTokenizer.from_pretrained("grammarly/coedit-large")
+model = T5ForConditionalGeneration.from_pretrained("grammarly/coedit-large").to(device)
 
 def fix_grammar(text: str, tokenizer, model, device) -> str:
     prompt = "Fix grammar: " + text
@@ -138,10 +142,6 @@ def annotated_html_with_ids(original_text: str, annotated_html: str) -> str:
     return annotated_html
 
 async def get_annotated_fixed_essay(answer: str) -> str:
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    tokenizer = AutoTokenizer.from_pretrained("grammarly/coedit-large")
-    model = T5ForConditionalGeneration.from_pretrained("grammarly/coedit-large").to(device)
-
     original_text = answer.strip()
     annotated_html = process_document(original_text, tokenizer, model, device, max_tokens=2048)
     annotated_html = annotated_html_with_ids(original_text, annotated_html)

@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 import os
 import json
 import httpx
+from google import genai
+from handle_json import read_json_from_string
 load_dotenv()
 OLLAMA_URL = os.getenv("OLLAMA_URL")
 print(OLLAMA_URL)
@@ -14,16 +16,6 @@ OLLAMA_CHAT_ENDPOINT = f"{OLLAMA_URL}/api/chat"
 print('OLLAMA_CHAT_ENDPOINT', OLLAMA_CHAT_ENDPOINT)
 RETRY_DELAY = int(os.getenv("RETRY_DELAY"))
 MAX_RETRIES = int(os.getenv("MAX_RETRIES"))
-
-load_dotenv()
-OLLAMA_URL = os.getenv("OLLAMA_URL")
-print(OLLAMA_URL)
-OLLAMA_HEALTH_ENDPOINT = f"{OLLAMA_URL}/"
-OLLAMA_CHAT_ENDPOINT = f"{OLLAMA_URL}/api/chat"
-print('OLLAMA_CHAT_ENDPOINT', OLLAMA_CHAT_ENDPOINT)
-RETRY_DELAY = int(os.getenv("RETRY_DELAY"))
-MAX_RETRIES = int(os.getenv("MAX_RETRIES"))
-
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_API_KEY_2 = os.getenv("GEMINI_API_KEY_2")
 BAND_DISCRIPTIOR_FILE = os.getenv("BAND_DISCRIPTIOR_FILE")

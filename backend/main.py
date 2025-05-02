@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from gemma import get_feedback
+from get_essay_statistics import get_essay_statistics
+from grammar import get_annotated_fixed_essay
 import uvicorn
 app = FastAPI(title="IELTS Essay Scoring API")
 # get root
@@ -18,8 +20,17 @@ async def get_feedback_endpoint(
     response = await get_feedback(question, answer)
     return response
 
+@app.post("/get_essay_statistics")
+async def get_essay_statistics_endpoint(answer: str):
+    stats = await get_essay_statistics(answer)
+    return stats
+
+@app.post("/get_annotated_fixed_essay")
+async def get_annotated_fixed_essay_endpoint(answer: str):
+    annotated_essay = await get_annotated_fixed_essay(answer)
+    return annotated_essay
+
 # start the server
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
 

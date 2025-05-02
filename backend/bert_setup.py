@@ -33,9 +33,5 @@ def get_overall_score(question, answer):
         output = model(input_ids, attention_mask, extra_number)
         output = output.cpu().numpy()
         score = round_to_nearest_half_np(output, method='nearest')
+        
     return score[0][0]
-
-
-
-
-

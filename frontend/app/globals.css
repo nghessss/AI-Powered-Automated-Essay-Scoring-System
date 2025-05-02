@@ -119,3 +119,26 @@
     @apply bg-background text-foreground;
   }
 }
+
+.error {
+  text-decoration: underline wavy red;
+  cursor: pointer;
+}
+.suggestion {
+  display: none;
+}
+.corrected {
+  color: green;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.strikethrough {
+  color: #888;
+  text-decoration: line-through;
+  margin-right: 0.25rem;
+}
+.correction {
+  color: green;
+  font-weight: 500;
+}

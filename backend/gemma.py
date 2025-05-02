@@ -1,15 +1,19 @@
-import asyncio
-import json
-import os
-
-import httpx
-import pandas as pd
-from dotenv import load_dotenv
-from google import genai
-
 from bert_setup import get_overall_score
-from handle_json import read_json_from_string
-import ollama
+import asyncio
+import httpx
+import asyncio
+from dotenv import load_dotenv
+import os
+import json
+import httpx
+load_dotenv()
+OLLAMA_URL = os.getenv("OLLAMA_URL")
+print(OLLAMA_URL)
+OLLAMA_HEALTH_ENDPOINT = f"{OLLAMA_URL}/"
+OLLAMA_CHAT_ENDPOINT = f"{OLLAMA_URL}/api/chat"
+print('OLLAMA_CHAT_ENDPOINT', OLLAMA_CHAT_ENDPOINT)
+RETRY_DELAY = int(os.getenv("RETRY_DELAY"))
+MAX_RETRIES = int(os.getenv("MAX_RETRIES"))
 
 load_dotenv()
 OLLAMA_URL = os.getenv("OLLAMA_URL")
@@ -33,6 +37,7 @@ async def create_evaluation_prompt(question: str, essay: str, overall_score: flo
         f"The essay above received an overall IELTS Writing band score of {str(overall_score)}.\n\n"
         f"As an IELTS examiner, evaluate the following essay based on the official IELTS scoring criteria.\n\n"
         f"Return your evaluation strictly in the following JSON format:\n\n"
+        f"The breakdown score has to be consistent with the overall band score, and is an integer, and the average need to be equal to {str(overall_score)} .\n"
         f"{{\n"
         f'  "criteria": {{\n'
         f'    "task_response": {{\n'
@@ -115,6 +120,7 @@ async def create_constructive_feedback_prompt(question: str, essay: str, overall
         f"- Return ONLY the JSON object. Do not add any explanations, headers, markdown, or extra text before or after.\n"
     )
     return prompt
+
 
 
 async def get_evaluation_feedback(user_id: str, overall_score: float, question: str , answer: str, client) -> str:

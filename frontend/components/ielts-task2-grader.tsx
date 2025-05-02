@@ -4,12 +4,12 @@ import { useState } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
-import { AlertCircle, BookOpen, Lightbulb, BarChart3, AlertTriangle } from "lucide-react"
+import { AlertCircle, BookOpen, Lightbulb } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { Progress } from "@/components/ui/progress"
+import {} from "@/app/api/grade-essay/route"
+import HtmlContentDisplay from "@/components/html-content-display"
 
 export default function IeltsTask2Grader() {
   const [text, setText] = useState("")
@@ -22,68 +22,37 @@ export default function IeltsTask2Grader() {
     grammaticalRange: 6,
   })
 
-  // Mock data for word occurrence - shortened words for better display
-  const [wordOccurrence, setWordOccurrence] = useState([
-    { word: "however", count: 5 },
-    { word: "therefore", count: 3 },
-    { word: "society", count: 4 },
-    { word: "education", count: 2 },
-    { word: "develop", count: 2 },
-  ])
+  const handleGrade = async () => {
+    try {
+      setIsGraded(true)
 
-  // Mock data for grammar mistakes
-  const [grammarMistakes, setGrammarMistakes] = useState({
-    total: 8,
-    types: [
-      { type: "Subject-verb agreement", count: 3 },
-      { type: "Article usage", count: 2 },
-      { type: "Tense consistency", count: 1 },
-      { type: "Preposition errors", count: 1 },
-      { type: "Run-on sentences", count: 1 },
-    ],
-  })
+      // In a real application, you would send the essay text and question to your API
+      const response = await fetch("/api/grade-essay", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
 
-  const handleGrade = () => {
-    // In a real application, this would call an API to analyze the text
-    // For demo purposes, we're just setting isGraded to true and using mock data
-
-    // Mock word analysis (in a real app, this would analyze the actual text)
-    analyzeText(text)
-
-    setIsGraded(true)
-  }
-
-  const analyzeText = (text: string) => {
-    // This is a simplified mock analysis
-    // In a real application, you would do proper text analysis here
-
-    // Mock word frequency analysis
-    const words = text
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((word) => word.length > 3)
-    const wordCount: Record<string, number> = {}
-
-    words.forEach((word) => {
-      // Remove punctuation
-      const cleanWord = word.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "")
-      if (cleanWord.length > 3) {
-        wordCount[cleanWord] = (wordCount[cleanWord] || 0) + 1
+      if (!response.ok) {
+        throw new Error(`Failed to grade essay: ${response.status}`)
       }
-    })
 
-    // Convert to array and sort by count
-    const wordArray = Object.entries(wordCount)
-      .map(([word, count]) => ({ word, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5) // Limit to 5 words for better display
+      const data = await response.json()
+      console.log("Grading result:", data)
 
-    if (wordArray.length > 0) {
-      setWordOccurrence(wordArray)
+      // Update scores based on API response
+      // This is just a placeholder - in a real app, you'd use the actual scores from the API
+      setScores({
+        taskAchievement: 7,
+        coherenceCohesion: 6.5,
+        lexicalResource: 7.5,
+        grammaticalRange: 6,
+      })
+    } catch (error) {
+      console.error("Error grading essay:", error)
+      // You might want to show an error message to the user here
     }
-
-    // In a real app, you would analyze grammar here
-    // For now, we'll use the mock data
   }
 
   const handleReset = () => {
@@ -179,9 +148,6 @@ export default function IeltsTask2Grader() {
     }
   }
 
-  // Colors for the word usage chart
-  const barColors = ["#4f46e5", "#6366f1", "#818cf8", "#a5b4fc", "#c7d2fe"]
-
   return (
     <div className="max-w-4xl mx-auto">
       <Card>
@@ -273,18 +239,9 @@ export default function IeltsTask2Grader() {
                       <label className="text-sm font-medium">{getCriteriaLabel(criteria)}</label>
                       <span className="text-sm font-bold">{score}</span>
                     </div>
-                    <Slider
-                      value={[score]}
-                      min={5}
-                      max={9}
-                      step={1}
-                      onValueChange={(value) =>
-                        setScores({
-                          ...scores,
-                          [criteria]: value[0],
-                        })
-                      }
-                    />
+                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary" style={{ width: `${((score - 5) / 4) * 100}%` }}></div>
+                    </div>
                     <Alert className="mt-2">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>{getFeedback(criteria, score)}</AlertDescription>
@@ -296,72 +253,7 @@ export default function IeltsTask2Grader() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-blue-500" />
-                Word Usage Analysis
-              </CardTitle>
-              <CardDescription>Frequency of words used in your essay</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mt-4">
-                {wordOccurrence.map((item, index) => (
-                  <div key={index} className="mb-3">
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm">{item.word}</span>
-                      <span className="text-sm font-medium">{item.count}</span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${(item.count / Math.max(...wordOccurrence.map((w) => w.count))) * 100}%`,
-                          backgroundColor: barColors[index % barColors.length],
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-amber-500" />
-                Grammar Mistakes
-              </CardTitle>
-              <CardDescription>Analysis of grammatical errors in your essay</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">Total Grammar Mistakes</span>
-                  <Badge variant="destructive">{grammarMistakes.total}</Badge>
-                </div>
-                <Progress value={Math.min(100, grammarMistakes.total * 10)} className="h-2" />
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium">Breakdown by Error Type</h3>
-                <div className="grid gap-3">
-                  {grammarMistakes.types.map((mistake, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></div>
-                        <span className="truncate">{mistake.type}</span>
-                      </div>
-                      <Badge variant="outline" className="ml-2 flex-shrink-0">
-                        {mistake.count}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <HtmlContentDisplay apiEndpoint="/api/detailed-analysis" title="Detailed Essay Analysis" className="mt-6" />
 
           <Card>
             <CardHeader>

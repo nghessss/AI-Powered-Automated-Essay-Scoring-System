@@ -4,7 +4,6 @@ import json
 import pandas as pd
 import re
 import torch
-from google import genai
 from transformers import AutoTokenizer, T5ForConditionalGeneration
 
 def fix_grammar(text: str, tokenizer, model, device) -> str:
@@ -120,13 +119,14 @@ def process_document(document_text: str, tokenizer, model, device, max_tokens: i
     # Ghép lại toàn bộ các segment theo đúng thứ tự ban đầu
     return "".join(annotated_segments)
 
-def wrap_words_with_click(text):
+def wrap_words_with_click(text: str) -> str:
     words = text.split()
     return ' '.join(
         f"<span class='word' onclick='scrollToWord({i})'>{w}</span>"
         for i, w in enumerate(words)
     )
-def annotated_html_with_ids(original_text, annotated_html):
+
+def annotated_html_with_ids(original_text: str, annotated_html: str) -> str:
     original_words = original_text.split()
     for i, word in enumerate(original_words):
         annotated_html = re.sub(
@@ -137,128 +137,142 @@ def annotated_html_with_ids(original_text, annotated_html):
         )
     return annotated_html
 
-async def main():
-    df = pd.read_csv('55_samples.csv')
-    question = df['question'][34]
-    answer = df['answer'][34]
-
+async def get_annotated_fixed_essay(answer: str) -> str:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     tokenizer = AutoTokenizer.from_pretrained("grammarly/coedit-large")
     model = T5ForConditionalGeneration.from_pretrained("grammarly/coedit-large").to(device)
 
-    original_text = """In the recent years, many animals are facing extinction due to human activities. From Sumatran tiger to giant panda, they is losing their homes and lives every day. The main reasons includes habitat lost, climate change, illegal hunting and human expansion. It is important we protect endangered animals before it’s too late.
+    original_text = answer.strip()
+    annotated_html = process_document(original_text, tokenizer, model, device, max_tokens=2048)
+    annotated_html = annotated_html_with_ids(original_text, annotated_html)
 
-One big problem are deforestation. Forests are cut down for farming, building and other human purpose. This make animals have no place to live. For example, orangutans in Borneo and Sumatra has lost most of their forest. With no enough space, animals can not find food or meet other of their kind, which make it hard to survive."""
+    return annotated_html
 
-    annotated_html = process_document(original_text, tokenizer, model, device, max_tokens=256)
+# TESTING WITH HTML (EDITABLE + CLICKABLE + TOTAL WORD COUNT (REAL TIME) + TOP 5 FREQUENT WORDS)
+# async def main():
+#     df = pd.read_csv('55_samples.csv')
+#     question = df['question'][35]
+#     answer = str(df['answer'][35]).strip()
 
-    with open("grammar_feedback_editable.html", "w", encoding="utf-8") as f:
-        f.write(f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Editable Grammar Feedback</title>
-            <style>
-                body {{
-                    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
-                    font-size: 16px;
-                    line-height: 1.6;
-                    padding: 30px;
-                }}
-                .editable {{
-                    border: 1px solid #ccc;
-                    padding: 15px;
-                    border-radius: 8px;
-                    min-height: 150px;
-                }}
-                .error-block {{
-                    text-decoration: underline;
-                    text-decoration-color: red;
-                    text-decoration-style: solid;
-                    text-decoration-thickness: 2px;
-                    text-underline-offset: 2px;
-                    cursor: pointer;
-                    position: relative;
-                }}
-                .popup {{
-                    position: absolute;
-                    background: #fefefe;
-                    border: 1px solid #ccc;
-                    padding: 4px 10px;
-                    border-radius: 6px;
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-                    z-index: 100;
-                    white-space: nowrap;
-                    top: 100%;
-                    left: 0;
-                }}
-            </style>
-            <script>
-                function updateErrorCount() {{
-                    const count = document.querySelectorAll('.error-block').length;
-                    document.getElementById('error-count').innerText = count;
-                }}
+#     print("type(answer):", type(answer))
 
-                function updateWordStats() {{
-                    const text = document.getElementById('editor').innerText;
-                    const words = text.match(/\\b\\w+\\b/g) || [];
-                    document.getElementById('word-count').innerText = words.length;
+#     device = "cuda" if torch.cuda.is_available() else "cpu"
+#     tokenizer = AutoTokenizer.from_pretrained("grammarly/coedit-large")
+#     model = T5ForConditionalGeneration.from_pretrained("grammarly/coedit-large").to(device)
 
-                    const freq = {{}};
-                    words.forEach(w => {{
-                        w = w.toLowerCase();
-                        freq[w] = (freq[w] || 0) + 1;
-                    }});
+#     original_text = """In the recent years, many animals are facing extinction due to human activities. From Sumatran tiger to giant panda, they is losing their homes and lives every day. The main reasons includes habitat lost, climate change, illegal hunting and human expansion. It is important we protect endangered animals before it’s too late.
 
-                    const top = Object.entries(freq)
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 5);
+#     One big problem are deforestation. Forests are cut down for farming, building and other human purpose. This make animals have no place to live. For example, orangutans in Borneo and Sumatra has lost most of their forest. With no enough space, animals can not find food or meet other of their kind, which make it hard to survive."""
 
-                    const ul = document.getElementById('top-words');
-                    ul.innerHTML = top.map(([w, c]) => `<li>${{w}}: ${{c}}</li>`).join('');
-                }}
+#     annotated_html = process_document(answer, tokenizer, model, device, max_tokens=2048)
 
-                function showSuggestion(el) {{
-                    document.querySelectorAll('.popup').forEach(p => p.remove());
-                    const suggestion = el.getAttribute('data-suggestion');
-                    const popup = document.createElement('div');
-                    popup.className = 'popup';
-                    popup.innerText = suggestion;
+#     with open("grammar_feedback_editable.html", "w", encoding="utf-8") as f:
+#         f.write(f"""
+#         <!DOCTYPE html>
+#         <html>
+#         <head>
+#             <meta charset="UTF-8">
+#             <title>Editable Grammar Feedback</title>
+#             <style>
+#                 body {{
+#                     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+#                     font-size: 16px;
+#                     line-height: 1.6;
+#                     padding: 30px;
+#                 }}
+#                 .editable {{
+#                     border: 1px solid #ccc;
+#                     padding: 15px;
+#                     border-radius: 8px;
+#                     min-height: 150px;
+#                 }}
+#                 .error-block {{
+#                     text-decoration: underline;
+#                     text-decoration-color: red;
+#                     text-decoration-style: solid;
+#                     text-decoration-thickness: 2px;
+#                     text-underline-offset: 2px;
+#                     cursor: pointer;
+#                     position: relative;
+#                 }}
+#                 .popup {{
+#                     position: absolute;
+#                     background: #fefefe;
+#                     border: 1px solid #ccc;
+#                     padding: 4px 10px;
+#                     border-radius: 6px;
+#                     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+#                     z-index: 100;
+#                     white-space: nowrap;
+#                     top: 100%;
+#                     left: 0;
+#                 }}
+#             </style>
+#             <script>
+#                 function updateErrorCount() {{
+#                     const count = document.querySelectorAll('.error-block').length;
+#                     document.getElementById('error-count').innerText = count;
+#                 }}
 
-                    popup.onclick = function () {{
-                        el.outerText = suggestion;
-                        updateErrorCount();
-                        updateWordStats();
-                    }};
+#                 function updateWordStats() {{
+#                     const text = document.getElementById('editor').innerText;
+#                     const words = text.match(/\\b\\w+\\b/g) || [];
+#                     document.getElementById('word-count').innerText = words.length;
 
-                    el.appendChild(popup);
-                }}
+#                     const freq = {{}};
+#                     words.forEach(w => {{
+#                         w = w.toLowerCase();
+#                         freq[w] = (freq[w] || 0) + 1;
+#                     }});
 
-                document.addEventListener('DOMContentLoaded', () => {{
-                    updateErrorCount();
-                    updateWordStats();
-                    document.getElementById('editor').addEventListener('input', updateWordStats);
-                }});
-            </script>
-        </head>
-        <body>
-            <h2>Editable Grammar Checker</h2>
+#                     const top = Object.entries(freq)
+#                         .sort((a, b) => b[1] - a[1])
+#                         .slice(0, 5);
 
-            <p><strong>Review suggestions:</strong> <span id="error-count">0</span></p>
-            <p><strong>Word count:</strong> <span id="word-count">0</span></p>
-            <p><strong>Top 5 frequent words:</strong></p>
-            <ul id="top-words"></ul>
+#                     const ul = document.getElementById('top-words');
+#                     ul.innerHTML = top.map(([w, c]) => `<li>${{w}}: ${{c}}</li>`).join('');
+#                 }}
 
-            <div id="editor" class="editable" contenteditable="true">
-                {annotated_html}
-            </div>
-        </body>
-        </html>
-        """)
+#                 function showSuggestion(el) {{
+#                     document.querySelectorAll('.popup').forEach(p => p.remove());
+#                     const suggestion = el.getAttribute('data-suggestion');
+#                     const popup = document.createElement('div');
+#                     popup.className = 'popup';
+#                     popup.innerText = suggestion;
 
-    print("✅ Saved to grammar_feedback_editable.html – open it in your browser to interact.")
+#                     popup.onclick = function () {{
+#                         el.outerText = suggestion;
+#                         updateErrorCount();
+#                         updateWordStats();
+#                     }};
+
+#                     el.appendChild(popup);
+#                 }}
+
+#                 document.addEventListener('DOMContentLoaded', () => {{
+#                     updateErrorCount();
+#                     updateWordStats();
+#                     document.getElementById('editor').addEventListener('input', updateWordStats);
+#                 }});
+#             </script>
+#         </head>
+#         <body>
+#             <h2>Editable Grammar Checker</h2>
+
+#             <p><strong>Review suggestions:</strong> <span id="error-count">0</span></p>
+#             <p><strong>Word count:</strong> <span id="word-count">0</span></p>
+#             <p><strong>Top 5 frequent words:</strong></p>
+#             <ul id="top-words"></ul>
+
+#             <div id="editor" class="editable" contenteditable="true">
+#                 {annotated_html}
+#             </div>
+#         </body>
+#         </html>
+#         """)
+
+#     print("✅ Saved to grammar_feedback_editable.html – open it in your browser to interact.")
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())

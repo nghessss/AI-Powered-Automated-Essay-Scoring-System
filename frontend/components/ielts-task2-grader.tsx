@@ -21,37 +21,44 @@ export default function IeltsTask2Grader() {
     lexicalResource: 6,
     grammaticalRange: 6,
   })
-
+  const [feedbackData, setFeedbackData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   const handleGrade = async () => {
     try {
-      setIsGraded(true)
-
-      // In a real application, you would send the essay text and question to your API
+      setLoading(true);
+      console.log("Question:", question)
+      // console log essay
+      console.log("Essay:", text)
       const response = await fetch("/api/grade-essay", {
-        method: "GET",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          question: question,
+          answer: text,
+        }),
       })
-
+  
       if (!response.ok) {
         throw new Error(`Failed to grade essay: ${response.status}`)
       }
-
+      // console log question
+      
+  
       const data = await response.json()
       console.log("Grading result:", data)
-
-      // Update scores based on API response
-      // This is just a placeholder - in a real app, you'd use the actual scores from the API
       setScores({
-        taskAchievement: 7,
-        coherenceCohesion: 6.5,
-        lexicalResource: 7.5,
-        grammaticalRange: 6,
-      })
+        taskAchievement: data.task_response.score,
+        coherenceCohesion: data.coherence_and_cohesion.score,
+        lexicalResource: data.lexical_resource.score,
+        grammaticalRange: data.grammatical_range_and_accuracy.score,
+      });
+      setFeedbackData(data);
+      setIsGraded(true)
+      setLoading(false);
     } catch (error) {
       console.error("Error grading essay:", error)
-      // You might want to show an error message to the user here
     }
   }
 
@@ -73,40 +80,31 @@ export default function IeltsTask2Grader() {
     return average.toFixed(1)
   }
 
-  const getFeedback = (criterion: string, score: number) => {
-    const feedbackMap: Record<string, Record<number, string>> = {
-      taskAchievement: {
-        5: "You address the task only partially. Try to fully address all parts of the task and develop your position throughout your response.",
-        6: "You address all parts of the task, but some aspects are more fully covered than others. Try to ensure all parts of the task are addressed equally.",
-        7: "You address all parts of the task, though some aspects could be more fully developed. Focus on providing more detailed examples.",
-        8: "You address all parts of the task. To improve further, ensure your position is clear throughout and supported with relevant examples.",
-        9: "You fully address all parts of the task with a fully developed position and well-supported ideas.",
-      },
-      coherenceCohesion: {
-        5: "Your writing has some organization but lacks overall progression. Work on using cohesive devices more effectively.",
-        6: "Your writing is generally arranged coherently, but you could improve the use of cohesive devices. Try to use a wider range of linking words.",
-        7: "You use cohesive devices effectively, but there may be some under/over-use. Work on paragraph organization and logical progression of ideas.",
-        8: "Your writing is well-organized with good use of cohesive devices. To improve, ensure all paragraphs have clear central topics.",
-        9: "Your writing is cohesive with skillful use of cohesive devices and full referencing.",
-      },
-      lexicalResource: {
-        5: "You use a limited range of vocabulary. Try to expand your vocabulary and use more precise word choices.",
-        6: "You have an adequate range of vocabulary for the task. Try to use less common vocabulary and more precise word choices.",
-        7: "You use vocabulary with flexibility and precision in most cases. Work on reducing occasional errors in word choice and collocation.",
-        8: "You use a wide range of vocabulary fluently. To improve, focus on using more sophisticated vocabulary items and idiomatic expressions.",
-        9: "You use a wide range of vocabulary with very natural and sophisticated control of lexical features.",
-      },
-      grammaticalRange: {
-        5: "You use a limited range of structures with errors in complex sentences. Focus on mastering basic sentence structures first.",
-        6: "You use a mix of simple and complex structures. Try to reduce grammatical errors in complex sentences.",
-        7: "You use a variety of complex structures with good control. Work on reducing occasional errors in grammar and punctuation.",
-        8: "You use a wide range of structures with good accuracy. To improve, focus on eliminating the few errors in more complex structures.",
-        9: "You use a wide range of structures with full flexibility and accuracy.",
-      },
-    }
-
-    return feedbackMap[criterion][score] || "Focus on improving this area to achieve a higher band score."
-  }
+  const getFeedback = (criterion: string): string[] => {
+    if (!feedbackData) return ["Feedback not available"];
+  
+    const map: Record<string, any> = {
+      taskAchievement: feedbackData.task_response,
+      coherenceCohesion: feedbackData.coherence_and_cohesion,
+      lexicalResource: feedbackData.lexical_resource,
+      grammaticalRange: feedbackData.grammatical_range_and_accuracy,
+    };
+  
+    const item = map[criterion];
+    if (!item) return ["No feedback for this criterion"];
+  
+    const {
+      evaluation_feedback,
+      constructive_feedback: { strengths = [], areas_for_improvement = [], recommendations = [] } = {},
+    } = item;
+  
+    return [
+      ...evaluation_feedback,
+      ...strengths,
+      ...areas_for_improvement,
+      ...recommendations,
+    ];
+  };
 
   const getWordRecommendations = () => {
     return [
@@ -187,14 +185,17 @@ export default function IeltsTask2Grader() {
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleReset}>
+          <Button variant="outline" onClick={handleReset} disabled={loading}>
             Reset
           </Button>
-          <Button onClick={handleGrade} disabled={!text.trim() || !question.trim()}>
-            Grade My Work
+          <Button onClick={handleGrade} disabled={!text.trim() || !question.trim() || loading}>
+            {loading ? "Grading..." : "Grade My Work"}
           </Button>
-        </CardFooter>
+        </CardFooter> 
       </Card>
+
+      
+      {loading && <p className="text-center my-4 text-muted-foreground">Grading in progress...</p>}
 
       {isGraded && (
         <div className="mt-8 space-y-6">
@@ -244,7 +245,11 @@ export default function IeltsTask2Grader() {
                     </div>
                     <Alert className="mt-2">
                       <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{getFeedback(criteria, score)}</AlertDescription>
+                      <div className="space-y-1">
+                        {getFeedback(criteria).map((feedback, index) => (
+                          <AlertDescription key={index}>• {feedback}</AlertDescription>
+                        ))}
+                      </div>
                     </Alert>
                     {criteria !== "grammaticalRange" && <Separator className="my-4" />}
                   </div>

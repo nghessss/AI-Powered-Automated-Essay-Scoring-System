@@ -2,60 +2,74 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    // Parse the request body
     const body = await request.json();
-    const { question, essay } = body;
-    
-    // Validate input
-    if (!question || !essay) {
+    const { question, answer } = body;
+
+    if (!question || !answer) {
       return NextResponse.json(
-        { error: 'Question and essay are required' },
+        { error: 'Question and answer are required' },
         { status: 400 }
       );
     }
-    
-    // Here you would call your actual grading service
-    // This could be:
-    // 1. Your own NLP model
-    // 2. A third-party API like OpenAI
-    // 3. A custom service you've built
-    
-    // Example with a hypothetical grading service:
-    const gradingServiceResponse = await fetch('https://your-grading-service.com/api', {
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get_feedback`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GRADING_API_KEY}`
       },
-      body: JSON.stringify({ question, essay }),
+      body: JSON.stringify({ question: question, answer: answer }), // ✅ match backend model
     });
     
-    const gradingResult = await gradingServiceResponse.json();
-    
-    // Process and format the response as needed
+    const gradingResult = await response.json();
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: 'Failed to grade essay' },
+        { status: response.status }
+      );
+    }
+
     const formattedResponse = {
-      scores: {
-        taskAchievement: gradingResult.taskScore,
-        coherenceCohesion: gradingResult.coherenceScore,
-        lexicalResource: gradingResult.vocabularyScore,
-        grammaticalRange: gradingResult.grammarScore,
+      overall: gradingResult.overall_score,
+      task_response: {
+        score: gradingResult.evaluation_feedback.criteria.task_response.score,
+        evaluation_feedback: gradingResult.evaluation_feedback.criteria.task_response.details,
+        constructive_feedback: {
+          strengths: gradingResult.constructive_feedback.criteria.task_response.strengths,
+          areas_for_improvement: gradingResult.constructive_feedback.criteria.task_response.areas_for_improvement,
+          recommendations: gradingResult.constructive_feedback.criteria.task_response.recommendations,
+        },
       },
-      wordAnalysis: gradingResult.wordFrequency.map((item: any) => ({
-        word: item.word,
-        count: item.frequency
-      })).slice(0, 5),
-      grammarAnalysis: {
-        total: gradingResult.totalGrammarErrors,
-        types: gradingResult.errorTypes.map((error: any) => ({
-          type: error.category,
-          count: error.instances
-        }))
-      }
+      coherence_and_cohesion: {
+        score: gradingResult.evaluation_feedback.criteria.coherence_and_cohesion.score,
+        evaluation_feedback: gradingResult.evaluation_feedback.criteria.coherence_and_cohesion.details,
+        constructive_feedback: {
+          strengths: gradingResult.constructive_feedback.criteria.coherence_and_cohesion.strengths,
+          areas_for_improvement: gradingResult.constructive_feedback.criteria.coherence_and_cohesion.areas_for_improvement,
+          recommendations: gradingResult.constructive_feedback.criteria.coherence_and_cohesion.recommendations,
+        },
+      },
+      lexical_resource: {
+        score: gradingResult.evaluation_feedback.criteria.lexical_resource.score,
+        evaluation_feedback: gradingResult.evaluation_feedback.criteria.lexical_resource.details,
+        constructive_feedback: {
+          strengths: gradingResult.constructive_feedback.criteria.lexical_resource.strengths,
+          areas_for_improvement: gradingResult.constructive_feedback.criteria.lexical_resource.areas_for_improvement,
+          recommendations: gradingResult.constructive_feedback.criteria.lexical_resource.recommendations,
+        },
+      },
+      grammatical_range_and_accuracy: {
+        score: gradingResult.evaluation_feedback.criteria.grammatical_range_and_accuracy.score,
+        evaluation_feedback: gradingResult.evaluation_feedback.criteria.grammatical_range_and_accuracy.details,
+        constructive_feedback: {
+          strengths: gradingResult.constructive_feedback.criteria.grammatical_range_and_accuracy.strengths,
+          areas_for_improvement: gradingResult.constructive_feedback.criteria.grammatical_range_and_accuracy.areas_for_improvement,
+          recommendations: gradingResult.constructive_feedback.criteria.grammatical_range_and_accuracy.recommendations,
+        },
+      },
     };
-    
-    // Return the formatted response
+
     return NextResponse.json(formattedResponse);
-    
+
   } catch (error) {
     console.error('Error in grade-essay API route:', error);
     return NextResponse.json(

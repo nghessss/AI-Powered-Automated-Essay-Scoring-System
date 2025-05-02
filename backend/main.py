@@ -3,21 +3,21 @@ from gemma import get_feedback
 from get_essay_statistics import get_essay_statistics
 from grammar import get_annotated_fixed_essay
 import uvicorn
+from pydantic import BaseModel
 app = FastAPI(title="IELTS Essay Scoring API")
+
+class FeedbackRequest(BaseModel):
+    question: str
+    answer: str
 # get root
 @app.get("/")
 async def root():
     return {"message": "Welcome to the IELTS Essay Scoring API"}
-
 @app.post("/get_feedback")
-async def get_feedback_endpoint(
-    question: str,
-    answer: str,
-):
-    """
-    Endpoint to get feedback on the answer to a question.
-    """
-    response = await get_feedback(question, answer)
+async def get_feedback_endpoint(request: FeedbackRequest):
+    print("Received question:", request.question)
+    print("Received answer:", request.answer)
+    response = await get_feedback(request.question, request.answer)
     return response
 
 @app.post("/get_essay_statistics")

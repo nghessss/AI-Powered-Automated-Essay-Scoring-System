@@ -6,6 +6,7 @@ cachetools==5.5.2
 certifi==2025.4.26
 charset-normalizer==3.4.1
 click==8.1.8
+dnspython==2.7.0
 fastapi==0.115.12
 filelock==3.18.0
 flatbuffers==25.2.10
@@ -45,6 +46,7 @@ pyasn1_modules==0.4.2
 pydantic==2.11.3
 pydantic_core==2.33.1
 Pygments==2.19.1
+pymongo==4.12.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.0
 pytz==2025.2

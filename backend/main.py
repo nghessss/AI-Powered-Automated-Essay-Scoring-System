@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+from pydantic import BaseModel
 
 import uvicorn
 from gemma import get_feedback
@@ -32,17 +33,17 @@ app = FastAPI(title="IELTS Essay Scoring API")
 async def startup_db():
     # Ensure MongoDB connection is established
     _ = client
-    
+class Feedback(BaseModel):
+    question: str
+    answer: str
 
 # get root
 @app.get("/")
 async def root():
     return {"message": "Welcome to the IELTS Essay Scoring API"}
 @app.post("/get_feedback")
-async def get_feedback_endpoint(request: FeedbackRequest):
-    print("Received question:", request.question)
-    print("Received answer:", request.answer)
-    response = await get_feedback(request.question, request.answer)
+async def get_feedback_endpoint(question: str, answer: str):
+    response = await get_feedback(question, answer)
     print(response)
     return response
 
@@ -58,13 +59,15 @@ async def get_annotated_fixed_essay_endpoint(answer: str):
 
 
 @app.post("/process_essay")
-async def process_essay_endpoint(question: str, answer: str):
+async def process_essay_endpoint(request: Feedback):
     """
     Combined endpoint to run feedback, statistics, and annotation in one session.
     Stores all three results under a shared session_id.
     """
     session_id = str(uuid.uuid4())
     now = datetime.utcnow()
+    question = request.question
+    answer   = request.answer
 
     # Run services
     feedback_task  = get_feedback(question, answer)

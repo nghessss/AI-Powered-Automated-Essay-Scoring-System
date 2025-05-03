@@ -12,7 +12,6 @@ import uvicorn
 from gemma import get_feedback
 from get_essay_statistics import get_essay_statistics
 from grammar import get_annotated_fixed_essay
-
 load_dotenv()
 # MongoDB configuration
 MONGO_URI = os.getenv("MONGODB_URI")
@@ -34,20 +33,17 @@ async def startup_db():
     # Ensure MongoDB connection is established
     _ = client
     
+
 # get root
 @app.get("/")
 async def root():
     return {"message": "Welcome to the IELTS Essay Scoring API"}
-
 @app.post("/get_feedback")
-async def get_feedback_endpoint(
-    question: str,
-    answer: str,
-):
-    """
-    Endpoint to get feedback on the answer to a question.
-    """
-    response = await get_feedback(question, answer)
+async def get_feedback_endpoint(request: FeedbackRequest):
+    print("Received question:", request.question)
+    print("Received answer:", request.answer)
+    response = await get_feedback(request.question, request.answer)
+    print(response)
     return response
 
 @app.post("/get_essay_statistics")

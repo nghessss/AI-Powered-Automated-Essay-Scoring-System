@@ -1,15 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { AlertCircle, BookOpen, Lightbulb } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { BookOpen, Lightbulb, CheckCircle, Info, AlertTriangle, Loader2 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
-import {} from "@/app/api/grade-essay/route"
-import HtmlContentDisplay from "@/components/html-content-display"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import dynamic from "next/dynamic"
+
+// Import HtmlContentDisplay with dynamic import to prevent SSR issues
+const HtmlContentDisplay = dynamic(() => import("@/components/html-content-display"), { ssr: false })
 
 export default function IeltsTask2Grader() {
   const [text, setText] = useState("")
@@ -21,13 +23,119 @@ export default function IeltsTask2Grader() {
     lexicalResource: 6,
     grammaticalRange: 6,
   })
-  const [feedbackData, setFeedbackData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [feedbackData, setFeedbackData] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Use mock data for testing
+  const useMockData = () => {
+    // Create mock feedback data
+    const mockFeedback = {
+      overall: 6.5,
+      task_response: {
+        score: 6,
+        evaluation_feedback: [
+          "You have addressed the main aspects of the task.",
+          "Your position is clear but could be more fully developed.",
+        ],
+        constructive_feedback: {
+          strengths: [
+            "You have a clear introduction that presents the topic.",
+            "You have included relevant examples to support your points.",
+          ],
+          areas_for_improvement: [
+            "Try to address all parts of the prompt more equally.",
+            "Develop your conclusion more fully to summarize your arguments.",
+          ],
+          recommendations: [
+            "Include a clearer thesis statement in your introduction.",
+            "Make sure to fully address all parts of the prompt.",
+          ],
+        },
+      },
+      coherence_and_cohesion: {
+        score: 7,
+        evaluation_feedback: [
+          "Your essay has a clear overall progression.",
+          "You use cohesive devices effectively in most cases.",
+        ],
+        constructive_feedback: {
+          strengths: [
+            "Your paragraphs have clear central topics.",
+            "You use a range of cohesive devices appropriately.",
+          ],
+          areas_for_improvement: [
+            "Some paragraphs could be better connected to improve flow.",
+            "Avoid overusing certain linking words.",
+          ],
+          recommendations: [
+            "Use a wider variety of cohesive devices.",
+            "Ensure each paragraph has a clear topic sentence.",
+          ],
+        },
+      },
+      lexical_resource: {
+        score: 6,
+        evaluation_feedback: [
+          "You use an adequate range of vocabulary for the task.",
+          "There are some errors in word choice and collocation.",
+        ],
+        constructive_feedback: {
+          strengths: [
+            "You attempt to use some less common vocabulary items.",
+            "Your vocabulary is generally relevant to the topic.",
+          ],
+          areas_for_improvement: [
+            "Work on using more precise vocabulary.",
+            "Reduce errors in word form and collocation.",
+          ],
+          recommendations: [
+            "Learn synonyms for commonly used words.",
+            "Practice using academic vocabulary in context.",
+          ],
+        },
+      },
+      grammatical_range_and_accuracy: {
+        score: 7,
+        evaluation_feedback: [
+          "You use a mix of simple and complex sentence structures.",
+          "There are some errors in grammar but they rarely impede communication.",
+        ],
+        constructive_feedback: {
+          strengths: ["You use a variety of complex structures.", "Most of your sentences are error-free."],
+          areas_for_improvement: [
+            "Pay attention to subject-verb agreement in complex sentences.",
+            "Be careful with article usage.",
+          ],
+          recommendations: [
+            "Practice using a wider range of complex structures.",
+            "Review common grammar errors in your writing.",
+          ],
+        },
+      },
+    }
+
+    // Update state with mock data
+    setScores({
+      taskAchievement: mockFeedback.task_response.score,
+      coherenceCohesion: mockFeedback.coherence_and_cohesion.score,
+      lexicalResource: mockFeedback.lexical_resource.score,
+      grammaticalRange: mockFeedback.grammatical_range_and_accuracy.score,
+    })
+    setFeedbackData(mockFeedback)
+  }
+
+  useEffect(() => {
+    if (isGraded) return // Only use mock data if not already graded
+    useMockData()
+  }, [isGraded])
+
   const handleGrade = async () => {
     try {
-      setLoading(true);
+      setLoading(true)
+      setError(null)
+
       console.log("Question:", question)
-      // console log essay
       console.log("Essay:", text)
       const response = await fetch("/api/grade-essay", {
         method: "POST",
@@ -39,26 +147,41 @@ export default function IeltsTask2Grader() {
           answer: text,
         }),
       })
-  
+
       if (!response.ok) {
-        throw new Error(`Failed to grade essay: ${response.status}`)
+        const contentType = response.headers.get("content-type")
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || `Server error: ${response.status}`)
+        } else {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`)
+        }
       }
-      // console log question
-      
-  
-      const data = await response.json()
+
+      let data
+      try {
+        const text = await response.text()
+        console.log("Raw response:", text)
+        data = JSON.parse(text)
+      } catch (jsonError) {
+        console.error("Failed to parse response as JSON:", jsonError)
+        throw new Error("Invalid response from server. Please try again.")
+      }
+
       console.log("Grading result:", data)
       setScores({
         taskAchievement: data.task_response.score,
         coherenceCohesion: data.coherence_and_cohesion.score,
         lexicalResource: data.lexical_resource.score,
         grammaticalRange: data.grammatical_range_and_accuracy.score,
-      });
-      setFeedbackData(data);
+      })
+      setFeedbackData(data)
       setIsGraded(true)
-      setLoading(false);
     } catch (error) {
       console.error("Error grading essay:", error)
+      setError(error instanceof Error ? error.message : "Failed to grade your essay. Please try again.")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -66,6 +189,8 @@ export default function IeltsTask2Grader() {
     setText("")
     setQuestion("")
     setIsGraded(false)
+    setFeedbackData(null)
+    setError(null)
     setScores({
       taskAchievement: 6,
       coherenceCohesion: 6,
@@ -80,31 +205,51 @@ export default function IeltsTask2Grader() {
     return average.toFixed(1)
   }
 
-  const getFeedback = (criterion: string): string[] => {
-    if (!feedbackData) return ["Feedback not available"];
-  
+  // Get feedback for a specific criterion and feedback type
+  const getFeedback = (criterion: string, type: "strengths" | "evaluation" | "areas_for_improvement"): string[] => {
+    if (!feedbackData) {
+      // Return mock data if no feedback data is available
+      const mockFeedback = {
+        strengths: [
+          "You have addressed the main aspects of the task.",
+          "Your essay has a clear structure with introduction, body paragraphs, and conclusion.",
+        ],
+        evaluation: [
+          "Your response demonstrates a good understanding of the topic.",
+          "You have used some cohesive devices effectively.",
+        ],
+        areas_for_improvement: [
+          "Try to develop your ideas with more specific examples.",
+          "Work on using a wider range of vocabulary.",
+        ],
+      }
+      return mockFeedback[type]
+    }
+
     const map: Record<string, any> = {
       taskAchievement: feedbackData.task_response,
       coherenceCohesion: feedbackData.coherence_and_cohesion,
       lexicalResource: feedbackData.lexical_resource,
       grammaticalRange: feedbackData.grammatical_range_and_accuracy,
-    };
-  
-    const item = map[criterion];
-    if (!item) return ["No feedback for this criterion"];
-  
-    const {
-      evaluation_feedback,
-      constructive_feedback: { strengths = [], areas_for_improvement = [], recommendations = [] } = {},
-    } = item;
-  
-    return [
-      ...evaluation_feedback,
-      ...strengths,
-      ...areas_for_improvement,
-      ...recommendations,
-    ];
-  };
+    }
+
+    const item = map[criterion]
+    if (!item) return ["No feedback available"]
+
+    if (type === "evaluation") {
+      return item.evaluation_feedback || ["No evaluation feedback available"]
+    } else if (type === "strengths") {
+      return item.constructive_feedback?.strengths || ["No strengths feedback available"]
+    } else if (type === "areas_for_improvement") {
+      const improvements = [
+        ...(item.constructive_feedback?.areas_for_improvement || []),
+        ...(item.constructive_feedback?.recommendations || []),
+      ]
+      return improvements.length > 0 ? improvements : ["No improvement feedback available"]
+    }
+
+    return ["Feedback not available"]
+  }
 
   const getWordRecommendations = () => {
     return [
@@ -184,17 +329,31 @@ export default function IeltsTask2Grader() {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleReset} disabled={loading}>
-            Reset
-          </Button>
-          <Button onClick={handleGrade} disabled={!text.trim() || !question.trim() || loading}>
-            {loading ? "Grading..." : "Grade My Work"}
-          </Button>
-        </CardFooter> 
+        <CardFooter className="flex flex-col gap-4">
+          <div className="flex justify-between w-full">
+            <Button variant="outline" onClick={handleReset} disabled={loading}>
+              Reset
+            </Button>
+            <Button onClick={handleGrade} disabled={!text.trim() || !question.trim() || loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Grading...
+                </>
+              ) : (
+                "Grade My Work"
+              )}
+            </Button>
+          </div>
+
+          {error && (
+            <Alert variant="destructive" className="w-full">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+        </CardFooter>
       </Card>
 
-      
       {loading && <p className="text-center my-4 text-muted-foreground">Grading in progress...</p>}
 
       {isGraded && (
@@ -233,32 +392,76 @@ export default function IeltsTask2Grader() {
                 ))}
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {Object.entries(scores).map(([criteria, score]) => (
-                  <div key={criteria} className="space-y-2">
-                    <div className="flex justify-between mb-2">
-                      <label className="text-sm font-medium">{getCriteriaLabel(criteria)}</label>
-                      <span className="text-sm font-bold">{score}</span>
-                    </div>
-                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary" style={{ width: `${((score - 5) / 4) * 100}%` }}></div>
-                    </div>
-                    <Alert className="mt-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <div className="space-y-1">
-                        {getFeedback(criteria).map((feedback, index) => (
-                          <AlertDescription key={index}>• {feedback}</AlertDescription>
-                        ))}
+                  <div key={criteria} className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold">{getCriteriaLabel(criteria)}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-sm font-medium">Score: {score}</span>
+                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden flex-1">
+                          <div className="h-full bg-primary" style={{ width: `${((score - 5) / 4) * 100}%` }}></div>
+                        </div>
                       </div>
-                    </Alert>
-                    {criteria !== "grammaticalRange" && <Separator className="my-4" />}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Strengths Box */}
+                      <div className="border rounded-lg overflow-hidden">
+                        <div className="bg-green-100 dark:bg-green-900 p-3 flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <h4 className="font-medium">Strengths</h4>
+                        </div>
+                        <div className="p-3 bg-green-50 dark:bg-green-950/50 h-full">
+                          <ul className="list-disc list-inside space-y-1 text-sm">
+                            {getFeedback(criteria, "strengths").map((item, i) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Evaluation Box */}
+                      <div className="border rounded-lg overflow-hidden">
+                        <div className="bg-blue-100 dark:bg-blue-900 p-3 flex items-center gap-2">
+                          <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          <h4 className="font-medium">Evaluation</h4>
+                        </div>
+                        <div className="p-3 bg-blue-50 dark:bg-blue-950/50 h-full">
+                          <ul className="list-disc list-inside space-y-1 text-sm">
+                            {getFeedback(criteria, "evaluation").map((item, i) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Constructive Feedback Box */}
+                      <div className="border rounded-lg overflow-hidden">
+                        <div className="bg-amber-100 dark:bg-amber-900 p-3 flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                          <h4 className="font-medium">Areas for Improvement</h4>
+                        </div>
+                        <div className="p-3 bg-amber-50 dark:bg-amber-950/50 h-full">
+                          <ul className="list-disc list-inside space-y-1 text-sm">
+                            {getFeedback(criteria, "areas_for_improvement").map((item, i) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    {criteria !== "grammaticalRange" && <Separator className="my-6" />}
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          <HtmlContentDisplay apiEndpoint="/api/detailed-analysis" title="Detailed Essay Analysis" className="mt-6" />
+          {typeof window !== "undefined" && (
+            <HtmlContentDisplay apiEndpoint="/api/detailed-analysis" title="Detailed Essay Analysis" className="mt-6" />
+          )}
 
           <Card>
             <CardHeader>

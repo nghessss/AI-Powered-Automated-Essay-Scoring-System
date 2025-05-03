@@ -18,6 +18,7 @@ async def get_feedback_endpoint(request: FeedbackRequest):
     print("Received question:", request.question)
     print("Received answer:", request.answer)
     response = await get_feedback(request.question, request.answer)
+    print(response)
     return response
 
 @app.post("/get_essay_statistics")

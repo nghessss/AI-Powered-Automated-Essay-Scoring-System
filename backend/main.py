@@ -80,7 +80,7 @@ async def process_essay_endpoint(request: Feedback):
         stats_task,
         annotated_task
     )
-    
+    print("Annotated essay:", annotated)
     # Persist to MongoDB with shared session_id
     feedback_col.insert_one({
         "session_id": session_id,

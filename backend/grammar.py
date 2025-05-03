@@ -140,11 +140,21 @@ def annotated_html_with_ids(original_text: str, annotated_html: str) -> str:
             count=1
         )
     return annotated_html
-
+def postprocess_annotated_html(annotated_html: str) -> str:
+    # Normalize line endings
+    normalized = annotated_html.replace('\r\n', '\n')
+    # Replace single newlines inside paragraphs with space
+    normalized = re.sub(r'(?<!\n)\n(?!\n)', ' ', normalized)
+    # Split into paragraphs on double newlines
+    paragraphs = normalized.strip().split('\n\n')
+    # Wrap with <p> and add spacing
+    return ''.join(f"<p style='margin-bottom: 0.75em'>{p.strip()}</p>" for p in paragraphs if p.strip())
 async def get_annotated_fixed_essay(answer: str) -> str:
     original_text = answer.strip()
     annotated_html = process_document(original_text, tokenizer, model, device, max_tokens=2048)
     annotated_html = annotated_html_with_ids(original_text, annotated_html)
+    # 👉 Final post-processing before returning
+    annotated_html = postprocess_annotated_html(annotated_html)
 
     return annotated_html
 

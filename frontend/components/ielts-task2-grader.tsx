@@ -5,13 +5,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, Lightbulb, CheckCircle, Info, AlertTriangle, Loader2 } from "lucide-react"
+import { BookOpen, Lightbulb, CheckCircle, Info, AlertTriangle, Loader2, BarChart3 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import dynamic from "next/dynamic"
 
-// Import HtmlContentDisplay with dynamic import to prevent SSR issues
+// Import components with dynamic import to prevent SSR issues
 const HtmlContentDisplay = dynamic(() => import("@/components/html-content-display"), { ssr: false })
+const WordUsageAnalysis = dynamic(() => import("@/components/word-usage-analysis"), { ssr: false })
 
 export default function IeltsTask2Grader() {
   const [text, setText] = useState("")
@@ -26,9 +28,14 @@ export default function IeltsTask2Grader() {
   const [feedbackData, setFeedbackData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [detailedAnalysisHtml, setDetailedAnalysisHTML] = useState<string>("")
+  // Add a new state
+  const [wordUsageData, setWordUsageData] = useState(null)
 
   // Use mock data for testing
-  const useMockData = () => {
+  const [usingMockData, setUsingMockData] = useState(false)
+
+  const generateMockData = () => {
     // Create mock feedback data
     const mockFeedback = {
       overall: 6.5,
@@ -126,10 +133,12 @@ export default function IeltsTask2Grader() {
   }
 
   useEffect(() => {
-    if (isGraded) return // Only use mock data if not already graded
-    useMockData()
-  }, [isGraded])
+    if (isGraded || usingMockData) return
 
+    setUsingMockData(true)
+    generateMockData()
+  }, [isGraded, usingMockData])
+  
   const handleGrade = async () => {
     try {
       setLoading(true)
@@ -157,26 +166,23 @@ export default function IeltsTask2Grader() {
           throw new Error(`Server error: ${response.status} ${response.statusText}`)
         }
       }
-
-      let data
-      try {
-        const text = await response.text()
-        console.log("Raw response:", text)
-        data = JSON.parse(text)
-      } catch (jsonError) {
-        console.error("Failed to parse response as JSON:", jsonError)
-        throw new Error("Invalid response from server. Please try again.")
-      }
+      
+      let data = await response.json()
+      console.log("Response data:", data)
+      const { formattedResponse, statistics, sessionId, annotatedEssay } = data
+      
 
       console.log("Grading result:", data)
       setScores({
-        taskAchievement: data.task_response.score,
-        coherenceCohesion: data.coherence_and_cohesion.score,
-        lexicalResource: data.lexical_resource.score,
-        grammaticalRange: data.grammatical_range_and_accuracy.score,
+        taskAchievement: formattedResponse.task_response.score,
+        coherenceCohesion: formattedResponse.coherence_and_cohesion.score,
+        lexicalResource: formattedResponse.lexical_resource.score,
+        grammaticalRange: formattedResponse.grammatical_range_and_accuracy.score,
       })
-      setFeedbackData(data)
+      setFeedbackData(formattedResponse)
       setIsGraded(true)
+      setWordUsageData(statistics)
+      setDetailedAnalysisHTML( annotatedEssay )
     } catch (error) {
       console.error("Error grading essay:", error)
       setError(error instanceof Error ? error.message : "Failed to grade your essay. Please try again.")
@@ -191,12 +197,14 @@ export default function IeltsTask2Grader() {
     setIsGraded(false)
     setFeedbackData(null)
     setError(null)
+    setDetailedAnalysisHTML("")
     setScores({
       taskAchievement: 6,
       coherenceCohesion: 6,
       lexicalResource: 6,
       grammaticalRange: 6,
     })
+    setUsingMockData(false)
   }
 
   const getOverallBand = () => {
@@ -293,66 +301,72 @@ export default function IeltsTask2Grader() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle>Writing Task 2</CardTitle>
-          <CardDescription>
-            Essay writing task where you respond to a point of view, argument, or problem.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="question" className="block text-sm font-medium mb-2">
-                Task 2 Question/Prompt
-              </label>
-              <Textarea
-                id="question"
-                placeholder="Enter the IELTS Task 2 question or prompt here..."
-                className="min-h-[100px]"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-              />
+      {!isGraded && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Writing Task 2</CardTitle>
+            <CardDescription>
+              Essay writing task where you respond to a point of view, argument, or problem.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Task 2 Question/Prompt */}
+              <div>
+                <label htmlFor="question" className="block text-sm font-medium mb-2">
+                  Task 2 Question/Prompt
+                </label>
+                <Textarea
+                  id="question"
+                  placeholder="Enter the IELTS Task 2 question or prompt here..."
+                  className="min-h-[100px]"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  disabled={isGraded}
+                />
+              </div>
+
+              {/* Essay Response */}
+              <div>
+                <label htmlFor="essay" className="block text-sm font-medium mb-2">
+                  Your Essay Response
+                </label>
+                <Textarea
+                  id="essay"
+                  placeholder="Write your IELTS Writing Task 2 response here..."
+                  className="min-h-[200px]"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  disabled={isGraded}
+                />
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-4">
+            <div className="flex justify-between w-full">
+              <Button variant="outline" onClick={handleReset} disabled={loading}>
+                Reset
+              </Button>
+              <Button onClick={handleGrade} disabled={!text.trim() || !question.trim() || loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Grading...
+                  </>
+                ) : (
+                  "Grade My Work"
+                )}
+              </Button>
             </div>
 
-            <div>
-              <label htmlFor="essay" className="block text-sm font-medium mb-2">
-                Your Essay Response
-              </label>
-              <Textarea
-                id="essay"
-                placeholder="Write your IELTS Writing Task 2 response here..."
-                className="min-h-[200px]"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-          <div className="flex justify-between w-full">
-            <Button variant="outline" onClick={handleReset} disabled={loading}>
-              Reset
-            </Button>
-            <Button onClick={handleGrade} disabled={!text.trim() || !question.trim() || loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Grading...
-                </>
-              ) : (
-                "Grade My Work"
-              )}
-            </Button>
-          </div>
-
-          {error && (
-            <Alert variant="destructive" className="w-full">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-        </CardFooter>
-      </Card>
+            {error && (
+              <Alert variant="destructive" className="w-full">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </CardFooter>
+        </Card>
+      )}
 
       {loading && <p className="text-center my-4 text-muted-foreground">Grading in progress...</p>}
 
@@ -368,7 +382,33 @@ export default function IeltsTask2Grader() {
               </div>
             </CardContent>
           </Card>
-
+          <Tabs defaultValue="detailed-analysis" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="detailed-analysis">
+                <Info className="h-4 w-4 mr-2" />
+                Your Essay
+              </TabsTrigger>
+              <TabsTrigger value="word-usage">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Word Usage Analysis
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="detailed-analysis" className="mt-4">
+            {/* Only render if window is available and detailedAnalysisHtml exists */}
+            {typeof window !== "undefined" && detailedAnalysisHtml && (
+              <HtmlContentDisplay
+                htmlContent={detailedAnalysisHtml}
+                title="Your essay with suggestions"
+                className="mt-0"
+              />
+              )}
+            </TabsContent>
+            <TabsContent value="word-usage" className="mt-4">
+              {typeof window !== "undefined" && wordUsageData && (
+                <WordUsageAnalysis analysis={wordUsageData} />
+              )}
+            </TabsContent>
+          </Tabs>
           <Card>
             <CardHeader>
               <CardTitle>Your IELTS Score</CardTitle>
@@ -459,58 +499,7 @@ export default function IeltsTask2Grader() {
             </CardContent>
           </Card>
 
-          {typeof window !== "undefined" && (
-            <HtmlContentDisplay apiEndpoint="/api/detailed-analysis" title="Detailed Essay Analysis" className="mt-6" />
-          )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lightbulb className="h-5 w-5 text-amber-500" />
-                Improvement Suggestions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-3 bg-muted rounded-md">
-                  <p className="font-medium mb-1">Introduction:</p>
-                  <p>
-                    It is often argued that [topic]. While there are those who believe [perspective A], others maintain
-                    that [perspective B]. This essay will examine both viewpoints before reaching a conclusion.
-                  </p>
-                </div>
-                <div className="p-3 bg-muted rounded-md">
-                  <p className="font-medium mb-1">Supporting arguments:</p>
-                  <p>One compelling argument in favor of [topic] is that it [benefit]. For instance, [example].</p>
-                </div>
-                <div className="p-3 bg-muted rounded-md">
-                  <p className="font-medium mb-1">Conclusion:</p>
-                  <p>
-                    In conclusion, while [summary of arguments], I believe that [your position] because [main reason].
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-purple-500" />
-                Recommended Vocabulary
-              </CardTitle>
-              <CardDescription>Use these words to enhance your Writing Task 2 performance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {getWordRecommendations().map((word, index) => (
-                  <Badge key={index} variant="secondary" className="px-3 py-1 text-sm">
-                    {word}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          
         </div>
       )}
     </div>

@@ -6,107 +6,74 @@ import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface HtmlContentDisplayProps {
-  apiEndpoint: string
+  apiEndpoint?: string
+  htmlContent?: string
   title?: string
   className?: string
 }
 
 export default function HtmlContentDisplay({
-  apiEndpoint,
+  htmlContent: initialHtmlContent,
   title = "Detailed Analysis",
   className = "",
 }: HtmlContentDisplayProps) {
-  const [htmlContent, setHtmlContent] = useState<string>("")
+  const [htmlContent, setHtmlContent] = useState<string>(initialHtmlContent || "")
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchHtmlContent = async () => {
-      if (!apiEndpoint) return
-
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        const response = await fetch(apiEndpoint)
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch content: ${response.status}`)
-        }
-
-        const data = await response.json()
-
-        // Check if the API returns an object with an html property
-        if (data.html) {
-          setHtmlContent(data.html)
-        } else if (typeof data === "string") {
-          // If the API returns HTML directly as a string
-          setHtmlContent(data)
-        } else {
-          // If the API returns a different structure, convert it to string
-          setHtmlContent(JSON.stringify(data))
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An unknown error occurred")
-        console.error("Error fetching HTML content:", err)
-      } finally {
-        setIsLoading(false)
-      }
+    // If direct HTML content is provided, use it
+    if (initialHtmlContent) {
+      setHtmlContent(initialHtmlContent)
+      return
     }
 
-    fetchHtmlContent()
-  }, [apiEndpoint])
+    // Otherwise fetch from API endpoint
 
-  // Function to handle editing text when an error is clicked
-  const handleEditText = (element: HTMLElement) => {
-    // Find the next sibling with class 'suggestion'
-    const suggestionSpan = element.nextElementSibling
+  }, [initialHtmlContent])
 
-    if (suggestionSpan && suggestionSpan.classList.contains("suggestion")) {
-      // Get the original error text
-      const errorText = element.textContent || ""
+  // Function to handle showing suggestion when an error is clicked
+  const handleShowSuggestion = (element: HTMLElement) => {
+    // Get the suggestion from the data attribute
+    const suggestion = element.getAttribute("data-suggestion")
 
-      // Get the suggested correction
-      const suggestion = suggestionSpan.textContent || ""
+    if (suggestion) {
+      // Create elements for the correction display
+      const originalText = element.textContent || ""
 
-      // Create a new span for the strikethrough error text
+      // Create a span for the strikethrough original text
       const strikethroughSpan = document.createElement("span")
       strikethroughSpan.className = "strikethrough"
-      strikethroughSpan.textContent = errorText
+      strikethroughSpan.textContent = originalText
 
-      // Create a new span for the correction
+      // Create a span for the suggested correction
       const correctionSpan = document.createElement("span")
       correctionSpan.className = "correction"
       correctionSpan.textContent = suggestion
 
-      // Clear the original error element and append the new spans
+      // Clear the original element and append the new spans
       element.textContent = ""
       element.appendChild(strikethroughSpan)
       element.appendChild(correctionSpan)
 
       // Change styling to show it's been corrected
-      element.classList.remove("error")
+      element.classList.remove("error-block")
       element.classList.add("corrected")
 
       // Remove the onclick handler
       element.removeAttribute("onclick")
-
-      // Hide the suggestion span
-      if (suggestionSpan) {
-        (suggestionSpan as HTMLElement).style.display = "none"
-      }
     }
   }
 
   useEffect(() => {
-    // Add the editText function to the window object so it can be called from inline onclick handlers
-    ;(window as any).editText = (element: HTMLElement) => {
-      handleEditText(element)
+    // Add the showSuggestion function to the window object so it can be called from inline onclick handlers
+    ;(window as any).showSuggestion = (element: HTMLElement) => {
+      handleShowSuggestion(element)
     }
 
     // Clean up function
     return () => {
-      delete (window as any).editText
+      delete (window as any).showSuggestion
     }
   }, [])
 
@@ -132,13 +99,13 @@ export default function HtmlContentDisplay({
         {!isLoading && !error && htmlContent && (
           <>
             <style jsx global>{`
-              .error {
-                text-decoration: underline red;
+              .error-block {
+                text-decoration: underline wavy red;
                 cursor: pointer;
                 position: relative;
               }
-              .suggestion {
-                display: none;
+              .error-block:hover {
+                background-color: rgba(255, 0, 0, 0.1);
               }
               .corrected {
                 text-decoration: none;
@@ -152,6 +119,10 @@ export default function HtmlContentDisplay({
               .correction {
                 color: green;
                 font-weight: 500;
+              }
+              .paragraph {
+                margin-bottom: 1rem;
+                line-height: 1.6;
               }
             `}</style>
             <div

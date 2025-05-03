@@ -1,5 +1,23 @@
 import { NextResponse } from 'next/server';
+function formatGradingResponse(gradingResult: any) {
+  const formatCriterion = (criterionName: string) => ({
+    score: gradingResult.evaluation_feedback.criteria[criterionName].score,
+    evaluation_feedback: gradingResult.evaluation_feedback.criteria[criterionName].details,
+    constructive_feedback: {
+      strengths: gradingResult.constructive_feedback.criteria[criterionName].strengths,
+      areas_for_improvement: gradingResult.constructive_feedback.criteria[criterionName].areas_for_improvement,
+      recommendations: gradingResult.constructive_feedback.criteria[criterionName].recommendations,
+    },
+  });
 
+  return {
+    overall: gradingResult.overall_score,
+    task_response: formatCriterion('task_response'),
+    coherence_and_cohesion: formatCriterion('coherence_and_cohesion'),
+    lexical_resource: formatCriterion('lexical_resource'),
+    grammatical_range_and_accuracy: formatCriterion('grammatical_range_and_accuracy'),
+  };
+}
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -12,61 +30,38 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get_feedback`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/process_essay`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ question: question, answer: answer }), // ✅ match backend model
     });
-    
-    const gradingResult = await response.json();
     if (!response.ok) {
       return NextResponse.json(
         { error: 'Failed to grade essay' },
         { status: response.status }
       );
     }
+    const data = await response.json();  
+    const sessionId = data.session_id; // ✅ Get the session ID from the response
+    console.log('Session ID:', sessionId); 
+    const gradingResult = data.feedback; 
+    const formattedResponse = formatGradingResponse(gradingResult);   
+    console.log('Formatted response:', formattedResponse);
+    const statistics = data.statistics; // ✅ Get the statistics from the response
+    console.log('Statistics:', statistics); // ✅ Log the statistics
+    const annotatedEssay = data.annotated_essay; // ✅ Get the annotated essay from the response
+    console.log('Annotated essay:', annotatedEssay); // ✅ Log the annotated essay
+    // return 4 objects: overall, task_response, coherence_and_cohesion, lexical_resource, grammatical_range_and_accuracy
+    // return the formatted response, statistics, and annotated essay
+    return NextResponse.json({
+      sessionId,
+      formattedResponse,
+      statistics,
+      annotatedEssay,
+    });
 
-    const formattedResponse = {
-      overall: gradingResult.overall_score,
-      task_response: {
-        score: gradingResult.evaluation_feedback.criteria.task_response.score,
-        evaluation_feedback: gradingResult.evaluation_feedback.criteria.task_response.details,
-        constructive_feedback: {
-          strengths: gradingResult.constructive_feedback.criteria.task_response.strengths,
-          areas_for_improvement: gradingResult.constructive_feedback.criteria.task_response.areas_for_improvement,
-          recommendations: gradingResult.constructive_feedback.criteria.task_response.recommendations,
-        },
-      },
-      coherence_and_cohesion: {
-        score: gradingResult.evaluation_feedback.criteria.coherence_and_cohesion.score,
-        evaluation_feedback: gradingResult.evaluation_feedback.criteria.coherence_and_cohesion.details,
-        constructive_feedback: {
-          strengths: gradingResult.constructive_feedback.criteria.coherence_and_cohesion.strengths,
-          areas_for_improvement: gradingResult.constructive_feedback.criteria.coherence_and_cohesion.areas_for_improvement,
-          recommendations: gradingResult.constructive_feedback.criteria.coherence_and_cohesion.recommendations,
-        },
-      },
-      lexical_resource: {
-        score: gradingResult.evaluation_feedback.criteria.lexical_resource.score,
-        evaluation_feedback: gradingResult.evaluation_feedback.criteria.lexical_resource.details,
-        constructive_feedback: {
-          strengths: gradingResult.constructive_feedback.criteria.lexical_resource.strengths,
-          areas_for_improvement: gradingResult.constructive_feedback.criteria.lexical_resource.areas_for_improvement,
-          recommendations: gradingResult.constructive_feedback.criteria.lexical_resource.recommendations,
-        },
-      },
-      grammatical_range_and_accuracy: {
-        score: gradingResult.evaluation_feedback.criteria.grammatical_range_and_accuracy.score,
-        evaluation_feedback: gradingResult.evaluation_feedback.criteria.grammatical_range_and_accuracy.details,
-        constructive_feedback: {
-          strengths: gradingResult.constructive_feedback.criteria.grammatical_range_and_accuracy.strengths,
-          areas_for_improvement: gradingResult.constructive_feedback.criteria.grammatical_range_and_accuracy.areas_for_improvement,
-          recommendations: gradingResult.constructive_feedback.criteria.grammatical_range_and_accuracy.recommendations,
-        },
-      },
-    };
 
     return NextResponse.json(formattedResponse);
 
@@ -100,3 +95,4 @@ export async function GET(request: Request) {
     );
   }
 }
+// write a function to get the feedback from the grading service

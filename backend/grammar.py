@@ -13,11 +13,11 @@ model = T5ForConditionalGeneration.from_pretrained("grammarly/coedit-large").to(
 def fix_grammar(text: str, tokenizer, model, device) -> str:
     prompt = "Fix grammar: " + text
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True).to(device)
-    outputs = model.generate(inputs.input_ids, max_length=256)
+    outputs = model.generate(inputs.input_ids, max_length=64)
     output_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return output_text
 
-def split_text_into_chunks(text: str, tokenizer, max_tokens: int = 256) -> list:
+def split_text_into_chunks(text: str, tokenizer, max_tokens: int = 64) -> list:
     """
     Tách text thành các chunk nhỏ dựa theo câu, sao cho mỗi chunk không vượt quá max_tokens.
     Sử dụng regex để tách câu dựa trên dấu kết thúc câu (., !, ?).
@@ -33,10 +33,10 @@ def split_text_into_chunks(text: str, tokenizer, max_tokens: int = 256) -> list:
             current_chunk = test_chunk
         else:
             if current_chunk:
-                chunks.append(current_chunk.strip())
+                chunks.append(current_chunk)
             current_chunk = sentence
     if current_chunk:
-        chunks.append(current_chunk.strip())
+        chunks.append(current_chunk)
     return chunks
 
 def annotate_differences(original_text: str, corrected_text: str) -> str:
@@ -84,7 +84,7 @@ def annotate_differences(original_text: str, corrected_text: str) -> str:
     return annotated_text
 
 
-def process_document(document_text: str, tokenizer, model, device, max_tokens: int = 256) -> str:    
+def process_document(document_text: str, tokenizer, model, device, max_tokens: int = 64) -> str:    
     """
     Xử lý một tài liệu:
       - Tách tài liệu thành các đoạn dựa trên các ký tự xuống dòng liên tiếp,
@@ -107,17 +107,18 @@ def process_document(document_text: str, tokenizer, model, device, max_tokens: i
             text_segment = segment
             tokens = tokenizer.tokenize(text_segment)
             if len(tokens) > max_tokens:
-                chunks = split_text_into_chunks(text_segment, max_tokens)
+                chunks = split_text_into_chunks(text_segment, tokenizer, max_tokens)
             else:
                 chunks = [text_segment]
             
             annotated_chunks = []
             for chunk in chunks:
+                print(chunk)
                 corrected_chunk = fix_grammar(chunk, tokenizer, model, device)
                 annotated_chunk = annotate_differences(chunk, corrected_chunk)
                 annotated_chunks.append(annotated_chunk)
             # Ghép lại các chunk xử lý của đoạn đó (giữa các chunk mình nối bằng một khoảng trắng đơn)
-            annotated_text = " ".join(annotated_chunks)
+            annotated_text = "".join(annotated_chunks)
             annotated_segments.append(annotated_text)
     
     # Ghép lại toàn bộ các segment theo đúng thứ tự ban đầu
@@ -140,6 +141,7 @@ def annotated_html_with_ids(original_text: str, annotated_html: str) -> str:
             count=1
         )
     return annotated_html
+
 def postprocess_annotated_html(annotated_html: str) -> str:
     # Normalize line endings
     normalized = annotated_html.replace('\r\n', '\n')
@@ -149,9 +151,10 @@ def postprocess_annotated_html(annotated_html: str) -> str:
     paragraphs = normalized.strip().split('\n\n')
     # Wrap with <p> and add spacing
     return ''.join(f"<p style='margin-bottom: 0.75em'>{p.strip()}</p>" for p in paragraphs if p.strip())
+
 async def get_annotated_fixed_essay(answer: str) -> str:
     original_text = answer.strip()
-    annotated_html = process_document(original_text, tokenizer, model, device, max_tokens=2048)
+    annotated_html = process_document(original_text, tokenizer, model, device, max_tokens=64)
     annotated_html = annotated_html_with_ids(original_text, annotated_html)
     # 👉 Final post-processing before returning
     annotated_html = postprocess_annotated_html(annotated_html)
@@ -174,7 +177,7 @@ async def get_annotated_fixed_essay(answer: str) -> str:
 
 #     One big problem are deforestation. Forests are cut down for farming, building and other human purpose. This make animals have no place to live. For example, orangutans in Borneo and Sumatra has lost most of their forest. With no enough space, animals can not find food or meet other of their kind, which make it hard to survive."""
 
-#     annotated_html = process_document(answer, tokenizer, model, device, max_tokens=2048)
+#     annotated_html = process_document(answer, tokenizer, model, device, max_tokens=64)
 
 #     with open("grammar_feedback_editable.html", "w", encoding="utf-8") as f:
 #         f.write(f"""

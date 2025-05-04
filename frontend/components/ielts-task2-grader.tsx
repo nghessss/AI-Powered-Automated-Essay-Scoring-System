@@ -398,6 +398,7 @@ export default function IeltsTask2Grader() {
             {typeof window !== "undefined" && detailedAnalysisHtml && (
               <HtmlContentDisplay
                 htmlContent={detailedAnalysisHtml}
+                onHtmlUpdate={(updatedHtml: string) => setDetailedAnalysisHTML(updatedHtml)}
                 title="Your essay with suggestions"
                 className="mt-0"
               />

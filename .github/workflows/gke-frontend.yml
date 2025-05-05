@@ -62,40 +62,6 @@ jobs:
           gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $PROJECT_ID
           gcloud components update
           gcloud components install gke-gcloud-auth-plugin
-
-      - name: 'Debug Secret Values (Partial)'
-        run: |
-          echo "Checking that secrets are being injected..."
-          echo "MONGODB_DB_NAME length: ${#MONGODB_DB_NAME}"
-        env:
-          MONGODB_DB_NAME: '${{ secrets.MONGODB_DB_NAME }}'
-
-      - name: 'Validate Required Secrets'
-        run: |
-          set -e
-          missing=0
-
-          check_secret() {
-            if [ -z "$1" ]; then
-              echo "❌ Missing secret: $2"
-              missing=1
-            fi
-          }
-          check_secret "${{ secrets.MONGODB_URI }}" "MONGODB_URI"
-          check_secret "${{ secrets.MONGODB_DB_NAME }}" "MONGODB_DB_NAME"
-          check_secret "${{ secrets.IELTS_HUGGINGFACE_API_KEY }}" "IELTS_HUGGINGFACE_API_KEY"
-          check_secret "${{ secrets.OLLAMA_URL }}" "OLLAMA_URL"
-          check_secret "${{ secrets.MAX_RETRIES }}" "MAX_RETRIES"
-          check_secret "${{ secrets.RETRY_DELAY }}" "RETRY_DELAY"
-          check_secret "${{ secrets.GEMINI_API_KEY }}" "GEMINI_API_KEY"
-          check_secret "${{ secrets.GEMINI_API_KEY_2 }}" "GEMINI_API_KEY_2"
-          check_secret "${{ secrets.GEMINI_API_KEY_3 }}" "GEMINI_API_KEY_3"
-          check_secret "${{ secrets.BAND_DISCRIPTIOR_FILE }}" "BAND_DISCRIPTIOR_FILE"
-
-          if [ "$missing" -eq 1 ]; then
-            echo "🚫 One or more required secrets are missing. Failing the job."
-            exit 1
-          fi
       - name: 'Create Kubernetes Secret/Config'
         run: |
           kubectl create secret generic secrets \

@@ -95,4 +95,7 @@ jobs:
           sed -i "s|image: frontend_image|image: ${FRONTEND_TAG}|" k8s/base/deployment.yaml
           kubectl apply -f k8s/base/deployment.yaml
           kubectl apply -f k8s/base/service.yaml
-          kubectl rollout restart deployment/${{ env.DEPLOYMENT_NAME_1 }}
+          kubectl get deployment $DEPLOYMENT_NAME_1 && \
+          kubectl rollout restart deployment/$DEPLOYMENT_NAME_1 || \
+          echo "Deployment $DEPLOYMENT_NAME_1 not found. Skipping restart."
+

@@ -1,0 +1,39 @@
+# Use the official Node.js image as a base for the build stage
+FROM --platform=linux/amd64 node:18 AS build
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy package.json and package-lock.json (or yarn.lock) first
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the application code into the container
+COPY . .
+
+# Build the Next.js application (create the `.next` folder)
+RUN npm run build
+
+# Use the official Node.js image as a base for the production stage
+FROM --platform=linux/amd64 node:18 AS production
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Set NODE_ENV to production
+ENV NODE_ENV=production
+
+# Copy only the necessary files from the build stage (including the build output)
+COPY --from=build /app/.next /app/.next
+COPY --from=build /app/package*.json /app/
+
+# Install only production dependencies
+RUN npm install --only=production
+
+# Expose port 3000 to allow access to the app
+EXPOSE 3000
+
+# Run the Next.js app
+CMD ["npm", "run", "start"]

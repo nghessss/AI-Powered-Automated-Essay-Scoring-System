@@ -45,7 +45,6 @@ async def root():
 @app.post("/get_feedback")
 async def get_feedback_endpoint(question: str, answer: str):
     response = await get_feedback(question, answer)
-    print(response)
     return response
 
 @app.post("/get_essay_statistics")
@@ -81,7 +80,7 @@ async def process_essay_endpoint(request: Feedback):
         stats_task,
         annotated_task
     )
-    print("Annotated essay:", annotated)
+    # print("Annotated essay:", annotated)
     # Persist to MongoDB with shared session_id
     feedback_col.insert_one({
         "session_id": session_id,

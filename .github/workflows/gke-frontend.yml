@@ -74,23 +74,28 @@ jobs:
         run: |
           set -e
           missing=0
-          for key in \
-            MONGODB_URI MONGODB_DB_NAME IELTS_HUGGINGFACE_API_KEY \
-            OLLAMA_URL MAX_RETRIES RETRY_DELAY \
-            GEMINI_API_KEY GEMINI_API_KEY_2 GEMINI_API_KEY_3 BAND_DISCRIPTIOR_FILE; do
 
-            value="${{ secrets[key] }}"
-            if [ -z "$value" ]; then
-              echo "❌ Missing secret: $key"
+          check_secret() {
+            if [ -z "$1" ]; then
+              echo "❌ Missing secret: $2"
               missing=1
             fi
-          done
+          }
+          check_secret "${{ secrets.MONGODB_URI }}" "MONGODB_URI"
+          check_secret "${{ secrets.MONGODB_DB_NAME }}" "MONGODB_DB_NAME"
+          check_secret "${{ secrets.IELTS_HUGGINGFACE_API_KEY }}" "IELTS_HUGGINGFACE_API_KEY"
+          check_secret "${{ secrets.OLLAMA_URL }}" "OLLAMA_URL"
+          check_secret "${{ secrets.MAX_RETRIES }}" "MAX_RETRIES"
+          check_secret "${{ secrets.RETRY_DELAY }}" "RETRY_DELAY"
+          check_secret "${{ secrets.GEMINI_API_KEY }}" "GEMINI_API_KEY"
+          check_secret "${{ secrets.GEMINI_API_KEY_2 }}" "GEMINI_API_KEY_2"
+          check_secret "${{ secrets.GEMINI_API_KEY_3 }}" "GEMINI_API_KEY_3"
+          check_secret "${{ secrets.BAND_DISCRIPTIOR_FILE }}" "BAND_DISCRIPTIOR_FILE"
 
           if [ "$missing" -eq 1 ]; then
             echo "🚫 One or more required secrets are missing. Failing the job."
             exit 1
           fi
-
       - name: 'Create Kubernetes Secret/Config'
         run: |
           kubectl create secret generic secrets \

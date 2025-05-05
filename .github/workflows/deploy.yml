@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows:
       - FRONTEND DOCKERIZATION
+      - BACKEND DOCKERIZATION
     types:
       - completed
 

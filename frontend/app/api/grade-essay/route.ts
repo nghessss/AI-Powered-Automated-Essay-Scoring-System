@@ -61,32 +61,6 @@ export async function POST(request: Request) {
       statistics,
       annotatedEssay,
     });
-
-
-    return NextResponse.json(formattedResponse);
-
-  } catch (error) {
-    console.error('Error in grade-essay API route:', error);
-    return NextResponse.json(
-      { error: 'Failed to grade essay' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(request: Request) {
-  try {
-    const gradingServiceResponse = await fetch('http://34.128.88.209:8000/', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const data = await gradingServiceResponse.json();  // ✅ Parse the JSON body
-    console.log('Data from grading service:', data);
-
-    return NextResponse.json(data);  // ✅ Return the parsed data
   } catch (error) {
     console.error('Error in grade-essay API route:', error);
     return NextResponse.json(

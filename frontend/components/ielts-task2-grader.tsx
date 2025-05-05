@@ -4,8 +4,7 @@ import { useState, useEffect } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { BookOpen, Lightbulb, CheckCircle, Info, AlertTriangle, Loader2, BarChart3 } from "lucide-react"
+import { CheckCircle, Info, AlertTriangle, Loader2, BarChart3 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -18,7 +17,6 @@ const WordUsageAnalysis = dynamic(() => import("@/components/word-usage-analysis
 export default function IeltsTask2Grader() {
   const [text, setText] = useState("")
   const [question, setQuestion] = useState("")
-  const [essay, setEssay] = useState("")
   const [questionWordCount, setQuestionWordCount] = useState(0)
   const [essayWordCount, setEssayWordCount] = useState(0)
   const [isGraded, setIsGraded] = useState(false)
@@ -28,6 +26,7 @@ export default function IeltsTask2Grader() {
     lexicalResource: 6,
     grammaticalRange: 6,
   })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [feedbackData, setFeedbackData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -271,9 +270,9 @@ export default function IeltsTask2Grader() {
         }
       }
       
-      let data = await response.json()
+      const data = await response.json()
       console.log("Response data:", data)
-      const { formattedResponse, statistics, sessionId, annotatedEssay } = data
+      const { formattedResponse, statistics, annotatedEssay } = data
       
 
       console.log("Grading result:", data)
@@ -365,30 +364,6 @@ export default function IeltsTask2Grader() {
     return ["Feedback not available"]
   }
 
-  const getWordRecommendations = () => {
-    return [
-      "controversial",
-      "debate",
-      "perspective",
-      "advocate",
-      "oppose",
-      "beneficial",
-      "detrimental",
-      "crucial",
-      "essential",
-      "significant",
-      "furthermore",
-      "moreover",
-      "nevertheless",
-      "consequently",
-      "therefore",
-      "arguably",
-      "undoubtedly",
-      "inevitably",
-      "ultimately",
-      "fundamentally",
-    ]
-  }
 
   const getCriteriaLabel = (criteria: string) => {
     switch (criteria) {

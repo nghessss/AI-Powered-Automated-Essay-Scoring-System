@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -13,7 +13,14 @@ interface HtmlContentDisplayProps {
   onHtmlUpdate?: (updatedHtml: string) => void
 }
 
+declare global {
+  interface Window {
+    showSuggestion?: (element: HTMLElement) => void
+  }
+}
+
 export default function HtmlContentDisplay({
+  apiEndpoint,
   htmlContent: initialHtmlContent,
   title = "Detailed Analysis",
   className = "",
@@ -24,65 +31,71 @@ export default function HtmlContentDisplay({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // If direct HTML content is provided, use it
     if (initialHtmlContent) {
       setHtmlContent(initialHtmlContent)
       return
     }
 
-    // Otherwise fetch from API endpoint
+    if (!apiEndpoint) return
 
-  }, [initialHtmlContent])
+    const fetchHtml = async () => {
+      setIsLoading(true)
+      try {
+        const res = await fetch(apiEndpoint)
+        if (!res.ok) throw new Error("Failed to fetch HTML content")
+        const data = await res.text()
+        setHtmlContent(data)
+      } catch (err) {
+        const errorMessage = (err as Error).message
+        setError(errorMessage)
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-  // Function to handle showing suggestion when an error is clicked
-  const handleShowSuggestion = (element: HTMLElement) => {
+    fetchHtml()
+  }, [initialHtmlContent, apiEndpoint])
+
+  const handleShowSuggestion = useCallback((element: HTMLElement) => {
     const suggestion = element.getAttribute("data-suggestion")
     if (suggestion !== null) {
       const originalText = element.textContent || ""
-  
+
       const strikethroughSpan = document.createElement("span")
       strikethroughSpan.className = "strikethrough"
       strikethroughSpan.textContent = originalText
-  
+
       const correctionSpan = document.createElement("span")
       correctionSpan.className = "correction"
       correctionSpan.textContent = suggestion
-  
+
       element.textContent = ""
       element.appendChild(strikethroughSpan)
       element.appendChild(correctionSpan)
-  
+
       element.classList.remove("error-block")
       element.classList.add("corrected")
       element.removeAttribute("onclick")
-  
-      // if empty string, remove the next sibling text node
+
       const next = element.nextSibling
       if (suggestion === "" && next && next.nodeType === Node.TEXT_NODE) {
         const cleaned = next.textContent?.replace(/^\s+/, "") ?? null
         next.textContent = cleaned
       }
-  
+
       const updatedHtml = element.closest("div")?.innerHTML
       if (updatedHtml && typeof onHtmlUpdate === "function") {
         onHtmlUpdate(updatedHtml)
       }
     }
-  }
-  
-  
+  }, [onHtmlUpdate])
 
   useEffect(() => {
-    // Add the showSuggestion function to the window object so it can be called from inline onclick handlers
-    ;(window as any).showSuggestion = (element: HTMLElement) => {
-      handleShowSuggestion(element)
-    }
-
-    // Clean up function
+    window.showSuggestion = handleShowSuggestion
     return () => {
-      delete (window as any).showSuggestion
+      delete window.showSuggestion
     }
-  }, [])
+  }, [handleShowSuggestion])
 
   return (
     <Card className={className}>
@@ -113,9 +126,6 @@ export default function HtmlContentDisplay({
                 text-decoration-thickness: 2px;
                 text-underline-offset: 4px;
                 cursor: pointer;
-                position: relative;
-              }
-              .error-block {
                 border-bottom: 2px solid red;
                 padding-bottom: 1px;
               }

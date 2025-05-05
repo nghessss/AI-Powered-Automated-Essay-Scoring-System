@@ -18,6 +18,9 @@ const WordUsageAnalysis = dynamic(() => import("@/components/word-usage-analysis
 export default function IeltsTask2Grader() {
   const [text, setText] = useState("")
   const [question, setQuestion] = useState("")
+  const [essay, setEssay] = useState("")
+  const [questionWordCount, setQuestionWordCount] = useState(0)
+  const [essayWordCount, setEssayWordCount] = useState(0)
   const [isGraded, setIsGraded] = useState(false)
   const [scores, setScores] = useState({
     taskAchievement: 6,
@@ -34,6 +37,107 @@ export default function IeltsTask2Grader() {
 
   // Use mock data for testing
   const [usingMockData, setUsingMockData] = useState(false)
+
+  // Count the number of words in a string
+  const countWords = (s: string) =>
+    s.trim().split(/\s+/).filter(Boolean).length
+
+  // Handle user input for the question textarea
+  // - Limit to 50 words
+  // - Trim excess words if pasted or typed over the limit
+  const handleQuestionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const raw = e.target.value
+    const n   = countWords(raw)
+    if (n <= 50) {
+      setQuestion(raw)
+      setQuestionWordCount(n)
+    } else {
+      const trimmed = raw.trim().split(/\s+/).filter(Boolean).slice(0, 50).join(" ")
+      setQuestion(trimmed)
+      setQuestionWordCount(50)
+    }
+  }
+  
+  // Prevent whitespace keydown if word count is already 50
+  const handleQuestionKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (/\s/.test(e.key) && countWords(question) >= 50) {
+      e.preventDefault()
+    }
+  }
+  
+  // Handle paste event for the question textarea
+  // - Limit to 50 words
+  // - Trim excess words if pasted over the limit
+  const handleQuestionPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasteText    = e.clipboardData.getData("text")
+    const currentCount = countWords(question)
+    const pasteCount   = countWords(pasteText)
+    const available    = 50 - currentCount
+  
+    if (available <= 0) {
+      e.preventDefault()
+      return
+    }
+    if (currentCount + pasteCount <= 50) return
+  
+    e.preventDefault()
+    const head = pasteText.trim().split(/\s+/).slice(0, available).join(" ")
+    const sep  = question.length > 0 && !/\s$/.test(question) ? " " : ""
+    const newQ = question + sep + head
+    setQuestion(newQ)
+    setQuestionWordCount(50)
+  }
+
+  // Prevent whitespace keydown if word count is already 350
+  const handleEssayChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const raw = e.target.value
+    const n   = countWords(raw)
+    if (n <= 350) {
+      setText(raw)
+      setEssayWordCount(n)
+    } else {
+      // Trim excess words if pasted or typed over the limit
+      const trimmed = raw
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 350)
+        .join(" ")
+      setText(trimmed)
+      setEssayWordCount(350)
+    }
+  }  
+
+  // Prevent whitespace keydown if word count is already 350
+  const handleEssayKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // whitespace
+    if (/\s/.test(e.key) && countWords(text) >= 350) {
+      e.preventDefault()
+    }
+  }
+
+  // Handle paste event for the essay textarea
+  // - Limit to 350 words
+  // - Trim excess words if pasted over the limit
+  const handleEssayPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasteText    = e.clipboardData.getData("text")
+    const currentCount = countWords(text)
+    const pasteCount   = countWords(pasteText)
+    const available    = 350 - currentCount
+  
+    if (available <= 0) {
+      e.preventDefault()
+      return
+    }
+    if (currentCount + pasteCount <= 350) return
+  
+    e.preventDefault()
+    const head = pasteText.trim().split(/\s+/).slice(0, available).join(" ")
+    const sep  = text.length > 0 && !/\s$/.test(text) ? " " : ""
+    const newText = text + sep + head
+    setText(newText)
+    setEssayWordCount(350)
+  }
 
   const generateMockData = () => {
     // Create mock feedback data
@@ -194,6 +298,8 @@ export default function IeltsTask2Grader() {
   const handleReset = () => {
     setText("")
     setQuestion("")
+    setQuestionWordCount(0)
+    setEssayWordCount(0)
     setIsGraded(false)
     setFeedbackData(null)
     setError(null)
@@ -321,9 +427,15 @@ export default function IeltsTask2Grader() {
                   placeholder="Enter the IELTS Task 2 question or prompt here..."
                   className="min-h-[100px]"
                   value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
+                  // onChange={(e) => setQuestion(e.target.value)}
+                  onChange={handleQuestionChange}
+                  onKeyDown={handleQuestionKeyDown}
+                  onPaste={handleQuestionPaste}
                   disabled={isGraded}
                 />
+                <div className="text-xs text-muted-foreground">
+                  {questionWordCount}/50 words
+                </div>
               </div>
 
               {/* Essay Response */}
@@ -336,9 +448,15 @@ export default function IeltsTask2Grader() {
                   placeholder="Write your IELTS Writing Task 2 response here..."
                   className="min-h-[200px]"
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
+                  // onChange={(e) => setText(e.target.value)}
+                  onChange={handleEssayChange}
+                  onKeyDown={handleEssayKeyDown}
+                  onPaste={handleEssayPaste}
                   disabled={isGraded}
                 />
+                <div className="text-xs text-muted-foreground">
+                  {essayWordCount}/350 words
+                </div>
               </div>
             </div>
           </CardContent>
@@ -398,6 +516,7 @@ export default function IeltsTask2Grader() {
             {typeof window !== "undefined" && detailedAnalysisHtml && (
               <HtmlContentDisplay
                 htmlContent={detailedAnalysisHtml}
+                onHtmlUpdate={(updatedHtml: string) => setDetailedAnalysisHTML(updatedHtml)}
                 title="Your essay with suggestions"
                 className="mt-0"
               />

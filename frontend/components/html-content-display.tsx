@@ -10,12 +10,14 @@ interface HtmlContentDisplayProps {
   htmlContent?: string
   title?: string
   className?: string
+  onHtmlUpdate?: (updatedHtml: string) => void
 }
 
 export default function HtmlContentDisplay({
   htmlContent: initialHtmlContent,
   title = "Detailed Analysis",
   className = "",
+  onHtmlUpdate,
 }: HtmlContentDisplayProps) {
   const [htmlContent, setHtmlContent] = useState<string>(initialHtmlContent || "")
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -33,37 +35,67 @@ export default function HtmlContentDisplay({
   }, [initialHtmlContent])
 
   // Function to handle showing suggestion when an error is clicked
+  // const handleShowSuggestion = (element: HTMLElement) => {
+  //   // Get the suggestion from the data attribute
+  //   const suggestion = element.getAttribute("data-suggestion")
+
+  //   if (suggestion) {
+  //     // Create elements for the correction display
+  //     const originalText = element.textContent || ""
+
+  //     // Create a span for the strikethrough original text
+  //     const strikethroughSpan = document.createElement("span")
+  //     strikethroughSpan.className = "strikethrough"
+  //     strikethroughSpan.textContent = originalText
+
+  //     // Create a span for the suggested correction
+  //     const correctionSpan = document.createElement("span")
+  //     correctionSpan.className = "correction"
+  //     correctionSpan.textContent = suggestion
+
+  //     // Clear the original element and append the new spans
+  //     element.textContent = ""
+  //     element.appendChild(strikethroughSpan)
+  //     element.appendChild(correctionSpan)
+
+  //     // Change styling to show it's been corrected
+  //     element.classList.remove("error-block")
+  //     element.classList.add("corrected")
+
+  //     // Remove the onclick handler
+  //     element.removeAttribute("onclick")
+  //   }
+  // }
+
   const handleShowSuggestion = (element: HTMLElement) => {
-    // Get the suggestion from the data attribute
     const suggestion = element.getAttribute("data-suggestion")
-
     if (suggestion) {
-      // Create elements for the correction display
       const originalText = element.textContent || ""
-
-      // Create a span for the strikethrough original text
+  
       const strikethroughSpan = document.createElement("span")
       strikethroughSpan.className = "strikethrough"
       strikethroughSpan.textContent = originalText
-
-      // Create a span for the suggested correction
+  
       const correctionSpan = document.createElement("span")
       correctionSpan.className = "correction"
       correctionSpan.textContent = suggestion
-
-      // Clear the original element and append the new spans
+  
       element.textContent = ""
       element.appendChild(strikethroughSpan)
       element.appendChild(correctionSpan)
-
-      // Change styling to show it's been corrected
+  
       element.classList.remove("error-block")
       element.classList.add("corrected")
-
-      // Remove the onclick handler
       element.removeAttribute("onclick")
+  
+      // ✅ Gọi lại prop callback để update cha
+      const updatedHtml = element.closest("div")?.innerHTML
+      if (updatedHtml && typeof onHtmlUpdate === "function") {
+        onHtmlUpdate(updatedHtml)
+      }
     }
   }
+  
 
   useEffect(() => {
     // Add the showSuggestion function to the window object so it can be called from inline onclick handlers
@@ -100,12 +132,17 @@ export default function HtmlContentDisplay({
           <>
             <style jsx global>{`
               .error-block {
-                text-decoration: underline wavy red;
+                text-decoration: underline;
+                text-decoration-color: red;
+                text-decoration-style: solid;
+                text-decoration-thickness: 2px;
+                text-underline-offset: 4px;
                 cursor: pointer;
                 position: relative;
               }
-              .error-block:hover {
-                background-color: rgba(255, 0, 0, 0.1);
+              .error-block {
+                border-bottom: 2px solid red;
+                padding-bottom: 1px;
               }
               .corrected {
                 text-decoration: none;

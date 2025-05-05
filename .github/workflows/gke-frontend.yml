@@ -76,7 +76,6 @@ jobs:
           docker push "${FRONTEND_TAG}"
       - name: 'Deploy to GKE'
         run: |-
-          run: |-
           set -x  # Enable command tracing for debugging
           gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $PROJECT_ID
           # apply secrets by using kubectl command

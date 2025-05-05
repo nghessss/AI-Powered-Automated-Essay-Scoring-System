@@ -63,7 +63,7 @@ jobs:
           gcloud components update
           gcloud components install gke-gcloud-auth-plugin
       - name: 'Create Kubernetes Secret/Config '
-        run: |-
+        run: |
           # apply secrets by using kubectl command
           kubectl create secret generic secrets \
             --from-literal="MONGODB_URI=${{ secrets.MONGODB_URI }}" \

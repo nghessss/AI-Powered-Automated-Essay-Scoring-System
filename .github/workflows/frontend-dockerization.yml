@@ -6,7 +6,6 @@ on:
       - 'main'
     paths:
       - 'frontend/**'
-      - 'k8s/base/**'
       - '.github/workflows/frontend-dockerization'
 
 jobs:

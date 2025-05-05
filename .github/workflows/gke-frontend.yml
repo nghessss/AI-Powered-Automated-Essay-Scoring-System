@@ -1,13 +1,13 @@
-name: 'BACKEND Build and Deploy to GKE'
+name: 'FRONTEND Build and Deploy to GKE'
 
 on:
   push:
     branches:
       - 'main'
     paths:
-      - 'backend/**'
+      - 'frontend/**'
       - 'k8s/base/**'
-      - '.github/workflows/gke-backend.yml'
+      - '.github/workflows/gke-frontend.yml'
 jobs:
   setup-build-publish-deploy:
     env:
@@ -15,10 +15,10 @@ jobs:
       GAR_LOCATION: 'asia-southeast2'  # TODO: update to your region
       GKE_CLUSTER: 'ielts-cluster'  # TODO: update to your cluster name
       GKE_ZONE: 'asia-southeast2'  # TODO: update to your cluster zone
-      DEPLOYMENT_NAME_1: 'ielts-backend'  # TODO: update to your deployment name
+      DEPLOYMENT_NAME_1: 'ielts-frontend'  # TODO: update to your deployment name
       REPOSITORY: 'ielts-repo'  # TODO: update to your Artifact Registry docker repository name
       WORKLOAD_IDENTITY_PROVIDER: '${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}'
-    name: 'BACKEND Setup, Build, Publish, and Deploy'
+    name: 'FRONTEND Setup, Build, Publish, and Deploy'
     runs-on: 'ubuntu-latest'
     environment: 'production'
 
@@ -68,7 +68,7 @@ jobs:
           gcloud auth configure-docker asia-southeast2-docker.pkg.dev
           export DOCKER_BUILDKIT=1
           export BUILDKIT_PROGRESS=plain
-          BACKEND_TAG="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/ielts-backend:latest"
+          FRONTEND_TAG="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/ielts-frontend:latest"
           # Set your build arguments
           BUILD_ARGS=(
             --build-arg IELTS_HUGGINGFACE_API_KEY="${{ secrets.IELTS_HUGGINGFACE_API_KEY }}"
@@ -83,9 +83,9 @@ jobs:
             --build-arg MONGODB_DB_NAME="${{ secrets.MONGODB_DB_NAME }}"
           )
 
-          echo "Building frontend container: $BACKEND_TAG"
-          docker build "${BUILD_ARGS[@]}" -f backend/Dockerfile.backend --tag "${BACKEND_TAG}" backend/
-          docker push "${BACKEND_TAG}"
+          echo "Building frontend container: $FRONTEND_TAG"
+          docker build "${BUILD_ARGS[@]}" -f frontend/Dockerfile.frontend --tag "${FRONTEND_TAG}" frontend/
+          docker push "${FRONTEND_TAG}"
       - name: 'Deploy to GKE'
         run: |-
           set -x  # Enable command tracing for debugging
@@ -96,15 +96,9 @@ jobs:
             --from-literal=OLLAMA_URL="${{ secrets.OLLAMA_URL }}" \
             --from-literal=MAX_RETRIES="${{ secrets.MAX_RETRIES }}" \
             --from-literal=RETRY_DELAY="${{ secrets.RETRY_DELAY }}" \
-            --from-literal=GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
-            --from-literal=GEMINI_API_KEY_2="${{ secrets.GEMINI_API_KEY_2 }}" \
-            --from-literal=GEMINI_API_KEY_3="${{ secrets.GEMINI_API_KEY_3 }}" \
-            --from-literal=BAND_DISCRIPTIOR_FILE="${{ secrets.BAND_DISCRIPTIOR_FILE }}" \
-            --from-literal=MONGODB_URI="${{ secrets.MONGODB_URI }}" \
-            --from-literal=MONGODB_DB_NAME="${{ secrets.MONGODB_DB_NAME }}" \
             --dry-run=client -o yaml | kubectl apply -f -
-          BACKEND_TAG="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/ielts-backend:latest"
-          sed -i "s|image: backend_image|image: ${BACKEND_TAG}|" k8s/base/deployment.yaml
+          FRONTEND_TAG="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/ielts-frontend:latest"
+          sed -i "s|image: frontend_image|image: ${FRONTEND_TAG}|" k8s/base/deployment.yaml
           kubectl apply -f k8s/base/deployment.yaml
           kubectl apply -f k8s/base/service.yaml
           # Restart the deployment to apply the new image

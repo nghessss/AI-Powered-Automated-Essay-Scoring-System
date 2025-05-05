@@ -6,6 +6,7 @@ on:
       - 'main'
     paths:
       - 'ollama/**'   # Trigger when changes are made in the ollama directory
+      - '.github/workflows/gke-ollama.yml'
 
 jobs:
   setup-build-publish-deploy:
@@ -73,11 +74,6 @@ jobs:
 
       
           # Set your build arguments
-          BUILD_ARGS=(
-            --build-arg IELTS_HUGGINGFACE_API_KEY="${{ secrets.IELTS_HUGGINGFACE_API_KEY }}"
-            --build-arg OLLAMA_URL="${{secrets.OLLAMA_URL}}"
-          )
-
           echo "Building database container: $OLLAMA_TAG"
           docker build -f ollama/Dockerfile.ollama --tag "${OLLAMA_TAG}" ollama/
           docker push "${OLLAMA_TAG}"

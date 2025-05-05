@@ -6,10 +6,10 @@ import re
 import torch
 from transformers import AutoTokenizer, T5ForConditionalGeneration
 # initialize the model and tokenizer
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cpu"
 tokenizer = AutoTokenizer.from_pretrained("grammarly/coedit-large")
 model = T5ForConditionalGeneration.from_pretrained("grammarly/coedit-large").to(device)
-
+print("Coedit model loaded successfully.")
 def fix_grammar(text: str, tokenizer, model, device) -> str:
     prompt = "Fix grammar: " + text
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True).to(device)

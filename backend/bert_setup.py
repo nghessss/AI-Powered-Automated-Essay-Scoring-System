@@ -12,7 +12,7 @@ load_dotenv()
 login(os.getenv("IELTS_HUGGINGFACE_API_KEY"))
 bert_tokenizer = BertTokenizer.from_pretrained("nghes/IELTS-BertwitthhExtraFeature")
 model = BERTWithExtraFeature()
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = "cpu"
 model_path = hf_hub_download(
     repo_id="nghes/IELTS-BertwitthhExtraFeature",
     filename="pytorch_model.bin"

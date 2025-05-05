@@ -7,6 +7,7 @@ import torch
 from transformers import AutoTokenizer, T5ForConditionalGeneration
 # initialize the model and tokenizer
 device = "cpu"
+print("Loading Coedit model...")
 tokenizer = AutoTokenizer.from_pretrained("grammarly/coedit-large")
 model = T5ForConditionalGeneration.from_pretrained("grammarly/coedit-large").to(device)
 print("Coedit model loaded successfully.")

@@ -1,14 +1,9 @@
 import asyncio
-import json
-import pandas as pd
-import re
-import torch
 from handle_json import read_json_from_string
 import os
 from google import genai
 
 GEMINI_API_KEY_3 = os.getenv("GEMINI_API_KEY_3")
-
 async def create_prompt_for_essay_analysis(essay: str) -> str:
     prompt = (
         "You are an AI assistant that analyzes English essays for writing quality.\n"

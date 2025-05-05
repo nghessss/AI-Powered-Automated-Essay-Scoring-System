@@ -19,7 +19,7 @@ MAX_RETRIES = int(os.getenv("MAX_RETRIES"))
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_API_KEY_2 = os.getenv("GEMINI_API_KEY_2")
 BAND_DISCRIPTIOR_FILE = os.getenv("BAND_DISCRIPTIOR_FILE")
-
+print('GEMMA file load successfully')
 async def create_evaluation_prompt(question: str, essay: str, overall_score: float) -> str:
     prompt = (
         f"You are an IELTS Writing Task 2 examiner.\n"

@@ -35,41 +35,9 @@ export default function HtmlContentDisplay({
   }, [initialHtmlContent])
 
   // Function to handle showing suggestion when an error is clicked
-  // const handleShowSuggestion = (element: HTMLElement) => {
-  //   // Get the suggestion from the data attribute
-  //   const suggestion = element.getAttribute("data-suggestion")
-
-  //   if (suggestion) {
-  //     // Create elements for the correction display
-  //     const originalText = element.textContent || ""
-
-  //     // Create a span for the strikethrough original text
-  //     const strikethroughSpan = document.createElement("span")
-  //     strikethroughSpan.className = "strikethrough"
-  //     strikethroughSpan.textContent = originalText
-
-  //     // Create a span for the suggested correction
-  //     const correctionSpan = document.createElement("span")
-  //     correctionSpan.className = "correction"
-  //     correctionSpan.textContent = suggestion
-
-  //     // Clear the original element and append the new spans
-  //     element.textContent = ""
-  //     element.appendChild(strikethroughSpan)
-  //     element.appendChild(correctionSpan)
-
-  //     // Change styling to show it's been corrected
-  //     element.classList.remove("error-block")
-  //     element.classList.add("corrected")
-
-  //     // Remove the onclick handler
-  //     element.removeAttribute("onclick")
-  //   }
-  // }
-
   const handleShowSuggestion = (element: HTMLElement) => {
     const suggestion = element.getAttribute("data-suggestion")
-    if (suggestion) {
+    if (suggestion !== null) {
       const originalText = element.textContent || ""
   
       const strikethroughSpan = document.createElement("span")
@@ -88,13 +56,20 @@ export default function HtmlContentDisplay({
       element.classList.add("corrected")
       element.removeAttribute("onclick")
   
-      // ✅ Gọi lại prop callback để update cha
+      // if empty string, remove the next sibling text node
+      const next = element.nextSibling
+      if (suggestion === "" && next && next.nodeType === Node.TEXT_NODE) {
+        const cleaned = next.textContent?.replace(/^\s+/, "") ?? null
+        next.textContent = cleaned
+      }
+  
       const updatedHtml = element.closest("div")?.innerHTML
       if (updatedHtml && typeof onHtmlUpdate === "function") {
         onHtmlUpdate(updatedHtml)
       }
     }
   }
+  
   
 
   useEffect(() => {

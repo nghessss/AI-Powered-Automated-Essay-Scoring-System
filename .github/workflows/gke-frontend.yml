@@ -62,6 +62,21 @@ jobs:
           gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $PROJECT_ID
           gcloud components update
           gcloud components install gke-gcloud-auth-plugin
+      - name: 'Create Kubernetes Secret/Config '
+        run: |-
+          # apply secrets by using kubectl command
+          kubectl create secret generic secrets \
+            --from-literal="IELTS_HUGGINGFACE_API_KEY=${{ secrets.IELTS_HUGGINGFACE_API_KEY }}" \
+            --from-literal="OLLAMA_URL=${{ secrets.OLLAMA_URL }}" \
+            --from-literal="MAX_RETRIES=${{ secrets.MAX_RETRIES }}" \
+            --from-literal="RETRY_DELAY=${{ secrets.RETRY_DELAY }}" \
+            --from-literal="GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" \
+            --from-literal="GEMINI_API_KEY_2=${{ secrets.GEMINI_API_KEY_2 }}" \
+            --from-literal="GEMINI_API_KEY_3=${{ secrets.GEMINI_API_KEY_3 }}" \
+            --from-literal="BAND_DISCRIPTIOR_FILE=${{ secrets.BAND_DISCRIPTIOR_FILE }}" \
+            --from-literal="MONGODB_URI=${{ secrets.MONGODB_URI }}" \
+            --from-literal="MONGODB_DB_NAME=${{ secrets.MONGODB_DB_NAME }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
       # Build and push Docker containers for all three services
       - name: 'Build and push Docker containers'
         run: |-
@@ -78,20 +93,6 @@ jobs:
         run: |-
           set -x  # Enable command tracing for debugging
           gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $PROJECT_ID
-          # apply secrets by using kubectl command
-          kubectl create secret generic secrets \
-            --from-literal="IELTS_HUGGINGFACE_API_KEY=${{ secrets.IELTS_HUGGINGFACE_API_KEY }}" \
-            --from-literal="OLLAMA_URL=${{ secrets.OLLAMA_URL }}" \
-            --from-literal="MAX_RETRIES=${{ secrets.MAX_RETRIES }}" \
-            --from-literal="RETRY_DELAY=${{ secrets.RETRY_DELAY }}" \
-            --from-literal="GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" \
-            --from-literal="GEMINI_API_KEY_2=${{ secrets.GEMINI_API_KEY_2 }}" \
-            --from-literal="GEMINI_API_KEY_3=${{ secrets.GEMINI_API_KEY_3 }}" \
-            --from-literal="BAND_DISCRIPTIOR_FILE=${{ secrets.BAND_DISCRIPTIOR_FILE }}" \
-            --from-literal="MONGODB_URI=${{ secrets.MONGODB_URI }}" \
-            --from-literal="MONGODB_DB_NAME=${{ secrets.MONGODB_DB_NAME }}" \
-            --dry-run=client -o yaml | kubectl apply -f -
-
           FRONTEND_TAG="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/ielts-frontend:latest"
           sed -i "s|image: frontend_image|image: ${FRONTEND_TAG}|" k8s/base/deployment.yaml
           kubectl apply -f k8s/base/deployment.yaml

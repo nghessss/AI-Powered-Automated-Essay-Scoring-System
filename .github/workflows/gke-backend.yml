@@ -73,6 +73,7 @@ jobs:
             --from-literal=GEMINI_API_KEY_2="${{ secrets.GEMINI_API_KEY_2 }}" \
             --from-literal=GEMINI_API_KEY_3="${{ secrets.GEMINI_API_KEY_3 }}" \
             --from-literal=BAND_DISCRIPTIOR_FILE="${{ secrets.BAND_DISCRIPTIOR_FILE }}" \
+            --from-literal=NEXT_PUBLIC_API_URL="${{ secrets.NEXT_PUBLIC_API_URL }}" \
             --dry-run=client -o yaml | kubectl apply -f -
       - name: 'Build and push Docker containers'
         run: |-
@@ -84,7 +85,7 @@ jobs:
           echo "Building frontend container: $BACKEND_TAG"
           docker build -f backend/Dockerfile.backend --tag "${BACKEND_TAG}" backend/
           docker push "${BACKEND_TAG}"
-          
+
       - name: 'Deploy to GKE'
         run: |-
           set -x  # Enable command tracing for debugging

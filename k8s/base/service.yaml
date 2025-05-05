@@ -10,3 +10,16 @@ spec:
       port: 8000
       targetPort: 8000
   type: LoadBalancer  # This exposes the service externally with an external IP address
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ielts-frontend
+spec:
+  selector:
+    app: ielts-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer  # This exposes the service externally with an external IP address

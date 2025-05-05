@@ -21,3 +21,28 @@ spec:
           envFrom:
             - secretRef:
                 name: secrets
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ielts-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ielts-frontend
+  template:
+    metadata:
+      labels:
+        app: ielts-frontend
+    spec:
+      containers:
+        - name: ielts-frontend
+          image: frontend_image
+          imagePullPolicy: Always  
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: secrets
+

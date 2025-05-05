@@ -7,7 +7,7 @@ on:
     paths:
       - 'backend/**'
       - 'k8s/base/**'
-      - '.github/workflows/gke-backend.yml'
+      - '.github/workflows/backend-dockerization.yml'
 jobs:
   setup-build-publish-deploy:
     env:

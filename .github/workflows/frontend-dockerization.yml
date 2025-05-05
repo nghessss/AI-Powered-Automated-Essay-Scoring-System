@@ -7,7 +7,7 @@ on:
     paths:
       - 'frontend/**'
       - 'k8s/base/**'
-      - '.github/workflows/gke-frontend.yml'
+      - '.github/workflows/frontend-dockerization'
 
 jobs:
   setup-build-publish-deploy:

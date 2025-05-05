@@ -70,21 +70,8 @@ jobs:
           export BUILDKIT_PROGRESS=plain
           BACKEND_TAG="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/ielts-backend:latest"
           # Set your build arguments
-          BUILD_ARGS=(
-            --build-arg IELTS_HUGGINGFACE_API_KEY="${{ secrets.IELTS_HUGGINGFACE_API_KEY }}"
-            --build-arg OLLAMA_URL="${{ secrets.OLLAMA_URL }}"
-            --build-arg MAX_RETRIES="${{ secrets.MAX_RETRIES }}"
-            --build-arg RETRY_DELAY="${{ secrets.RETRY_DELAY }}"
-            --build-arg GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}"
-            --build-arg GEMINI_API_KEY_2="${{ secrets.GEMINI_API_KEY_2 }}"
-            --build-arg GEMINI_API_KEY_3="${{ secrets.GEMINI_API_KEY_3 }}"
-            --build-arg BAND_DISCRIPTIOR_FILE="${{ secrets.BAND_DISCRIPTIOR_FILE }}"
-            --build-arg MONGODB_URI="${{ secrets.MONGODB_URI }}"
-            --build-arg MONGODB_DB_NAME="${{ secrets.MONGODB_DB_NAME }}"
-          )
-
           echo "Building frontend container: $BACKEND_TAG"
-          docker build "${BUILD_ARGS[@]}" -f backend/Dockerfile.backend --tag "${BACKEND_TAG}" backend/
+          docker build -f backend/Dockerfile.backend --tag "${BACKEND_TAG}" backend/
           docker push "${BACKEND_TAG}"
       - name: 'Deploy to GKE'
         run: |-

@@ -66,7 +66,6 @@ jobs:
         run: |
           kubectl create secret generic secrets \
             --from-literal=MONGODB_URI="${{ secrets.MONGODB_URI }}" \
-            --from-literal=MONGODB_DB_NAME="${{ secrets.MONGODB_DB_NAME }}" \
             --from-literal=IELTS_HUGGINGFACE_API_KEY="${{ secrets.IELTS_HUGGINGFACE_API_KEY }}" \
             --from-literal=OLLAMA_URL="${{ secrets.OLLAMA_URL }}" \
             --from-literal=MAX_RETRIES="${{ secrets.MAX_RETRIES }}" \

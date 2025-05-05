@@ -20,13 +20,13 @@ WORKDIR /models
 RUN apt-get update && \
     apt-get install -y wget git-lfs dos2unix && \
     git lfs install && \
-    wget -O gemma-3-4b-essay_feedback-q8_0.gguf \
-      https://huggingface.co/huyg1108/gemma-3-4b-essay_feedback-GGUF/resolve/main/gemma-3-4b-essay_feedback-q8_0.gguf && \
+    wget -O gemma-3-4b-essay_feedback-bf16.gguf \
+      https://huggingface.co/huyg1108/gemma-3-4b-essay_feedback-GGUF/resolve/main/gemma-3-4b-essay_feedback-bf16.gguf && \
     rm -rf /var/lib/apt/lists/*
 
 # Add custom Modelfile
 RUN echo '\
-FROM gemma-3-4b-essay_feedback-q8_0.gguf\n\
+FROM gemma-3-4b-essay_feedback-bf16.gguf\n\
 \n\
 TEMPLATE """{{ if .System }}<start_of_turn>user\n\
 {{ .System }}<end_of_turn>\n\
@@ -35,8 +35,8 @@ TEMPLATE """{{ if .System }}<start_of_turn>user\n\
 <start_of_turn>model\n\
 {{ .Response }}"""\n\
 \n\
-PARAMETER temperature 1\n\
-PARAMETER top_p 0.9\n\
+PARAMETER temperature 0.5\n\
+PARAMETER top_p 0.95\n\
 PARAMETER stop ["<start_of_turn>", "<end_of_turn>"]\n\
 \n\
 SYSTEM """Bạn là một trợ lý AI hữu ích, chuyên đưa ra phản hồi về các bài luận."""\n\

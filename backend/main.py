@@ -15,6 +15,7 @@ from get_essay_statistics import get_essay_statistics
 from grammar import get_annotated_fixed_essay
 load_dotenv()
 # MongoDB configuration
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 MONGO_URI = os.getenv("MONGODB_URI")
 DB_NAME   = os.getenv("MONGODB_DB_NAME", "essay")
 

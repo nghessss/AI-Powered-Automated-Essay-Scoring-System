@@ -118,7 +118,6 @@ def process_document(document_text: str, tokenizer, model, device, max_tokens: i
             
             annotated_chunks = []
             for chunk in chunks:
-                print(chunk)
                 corrected_chunk = fix_grammar(chunk, tokenizer, model, device)
                 annotated_chunk = annotate_differences(chunk, corrected_chunk)
                 annotated_chunks.append(annotated_chunk)

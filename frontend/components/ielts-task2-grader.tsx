@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,7 +14,25 @@ import dynamic from "next/dynamic"
 const HtmlContentDisplay = dynamic(() => import("@/components/html-content-display"), { ssr: false })
 const WordUsageAnalysis = dynamic(() => import("@/components/word-usage-analysis"), { ssr: false })
 
-export default function IeltsTask2Grader() {
+export interface IeltsTask2GraderProps {
+  initialQuestion?: string
+  initialEssay?: string
+  initialFeedbackData?: any
+  initialWordUsageData?: any
+  initialDetailedAnalysisHtml?: string
+  isReadOnly?: boolean
+}
+
+export default function IeltsTask2Grader(props: IeltsTask2GraderProps) {
+  const {
+    initialQuestion,
+    initialEssay,
+    initialFeedbackData,
+    initialWordUsageData,
+    initialDetailedAnalysisHtml,
+    isReadOnly
+  } = props
+
   const [text, setText] = useState("")
   const [question, setQuestion] = useState("")
   const [questionWordCount, setQuestionWordCount] = useState(0)
@@ -41,57 +59,60 @@ export default function IeltsTask2Grader() {
   const countWords = (s: string) =>
     s.trim().split(/\s+/).filter(Boolean).length
 
+  const MAX_QUESTION_WORDS = 60  // maximum words for question
+  const MAX_ESSAY_WORDS    = 360 // maximum words for essay
+
   // Handle user input for the question textarea
-  // - Limit to 50 words
+  // - Limit to MAX_QUESTION_WORDS words
   // - Trim excess words if pasted or typed over the limit
   const handleQuestionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const raw = e.target.value
     const n   = countWords(raw)
-    if (n <= 50) {
+    if (n <= MAX_QUESTION_WORDS) {
       setQuestion(raw)
       setQuestionWordCount(n)
     } else {
-      const trimmed = raw.trim().split(/\s+/).filter(Boolean).slice(0, 50).join(" ")
+      const trimmed = raw.trim().split(/\s+/).filter(Boolean).slice(0, MAX_QUESTION_WORDS).join(" ")
       setQuestion(trimmed)
-      setQuestionWordCount(50)
+      setQuestionWordCount(MAX_QUESTION_WORDS)
     }
   }
   
-  // Prevent whitespace keydown if word count is already 50
+  // Prevent whitespace keydown if word count is already MAX_QUESTION_WORDS
   const handleQuestionKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (/\s/.test(e.key) && countWords(question) >= 50) {
+    if (/\s/.test(e.key) && countWords(question) >= MAX_QUESTION_WORDS) {
       e.preventDefault()
     }
   }
   
   // Handle paste event for the question textarea
-  // - Limit to 50 words
+  // - Limit to MAX_QUESTION_WORDS words
   // - Trim excess words if pasted over the limit
   const handleQuestionPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const pasteText    = e.clipboardData.getData("text")
     const currentCount = countWords(question)
     const pasteCount   = countWords(pasteText)
-    const available    = 50 - currentCount
+    const available    = MAX_QUESTION_WORDS - currentCount
   
     if (available <= 0) {
       e.preventDefault()
       return
     }
-    if (currentCount + pasteCount <= 50) return
+    if (currentCount + pasteCount <= MAX_QUESTION_WORDS) return
   
     e.preventDefault()
     const head = pasteText.trim().split(/\s+/).slice(0, available).join(" ")
     const sep  = question.length > 0 && !/\s$/.test(question) ? " " : ""
     const newQ = question + sep + head
     setQuestion(newQ)
-    setQuestionWordCount(50)
+    setQuestionWordCount(MAX_QUESTION_WORDS)
   }
 
-  // Prevent whitespace keydown if word count is already 350
+  // Prevent whitespace keydown if word count is already MAX_ESSAY_WORDS
   const handleEssayChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const raw = e.target.value
     const n   = countWords(raw)
-    if (n <= 350) {
+    if (n <= MAX_ESSAY_WORDS) {
       setText(raw)
       setEssayWordCount(n)
     } else {
@@ -100,42 +121,42 @@ export default function IeltsTask2Grader() {
         .trim()
         .split(/\s+/)
         .filter(Boolean)
-        .slice(0, 350)
+        .slice(0, MAX_ESSAY_WORDS)
         .join(" ")
       setText(trimmed)
-      setEssayWordCount(350)
+      setEssayWordCount(MAX_ESSAY_WORDS)
     }
   }  
 
-  // Prevent whitespace keydown if word count is already 350
+  // Prevent whitespace keydown if word count is already MAX_ESSAY_WORDS
   const handleEssayKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // whitespace
-    if (/\s/.test(e.key) && countWords(text) >= 350) {
+    if (/\s/.test(e.key) && countWords(text) >= MAX_ESSAY_WORDS) {
       e.preventDefault()
     }
   }
 
   // Handle paste event for the essay textarea
-  // - Limit to 350 words
+  // - Limit to MAX_ESSAY_WORDS words
   // - Trim excess words if pasted over the limit
   const handleEssayPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const pasteText    = e.clipboardData.getData("text")
     const currentCount = countWords(text)
     const pasteCount   = countWords(pasteText)
-    const available    = 350 - currentCount
+    const available    = MAX_ESSAY_WORDS - currentCount
   
     if (available <= 0) {
       e.preventDefault()
       return
     }
-    if (currentCount + pasteCount <= 350) return
+    if (currentCount + pasteCount <= MAX_ESSAY_WORDS) return
   
     e.preventDefault()
     const head = pasteText.trim().split(/\s+/).slice(0, available).join(" ")
     const sep  = text.length > 0 && !/\s$/.test(text) ? " " : ""
     const newText = text + sep + head
     setText(newText)
-    setEssayWordCount(350)
+    setEssayWordCount(MAX_ESSAY_WORDS)
   }
 
   const generateMockData = () => {
@@ -236,12 +257,29 @@ export default function IeltsTask2Grader() {
   }
 
   useEffect(() => {
-    if (isGraded || usingMockData) return
+    if (isReadOnly) {
+      setQuestion(initialQuestion || '')
+      setText(initialEssay || '')
+      setFeedbackData(initialFeedbackData)
+      setWordUsageData(initialWordUsageData)
+      setDetailedAnalysisHTML(initialDetailedAnalysisHtml || '')
+      setIsGraded(true)
+    }
+  }, [
+    isReadOnly,
+    initialQuestion,
+    initialEssay,
+    initialFeedbackData,
+    initialWordUsageData,
+    initialDetailedAnalysisHtml
+  ])
 
+  useEffect(() => {
+    if (isGraded || usingMockData || isReadOnly) return
     setUsingMockData(true)
     generateMockData()
-  }, [isGraded, usingMockData])
-  
+  }, [isGraded, usingMockData, isReadOnly])
+
   const handleGrade = async () => {
     try {
       setLoading(true)
@@ -409,7 +447,7 @@ export default function IeltsTask2Grader() {
                   disabled={isGraded}
                 />
                 <div className="text-xs text-muted-foreground">
-                  {questionWordCount}/50 words
+                  {questionWordCount}/{MAX_QUESTION_WORDS} words
                 </div>
               </div>
 
@@ -430,7 +468,7 @@ export default function IeltsTask2Grader() {
                   disabled={isGraded}
                 />
                 <div className="text-xs text-muted-foreground">
-                  {essayWordCount}/350 words
+                  {essayWordCount}/{MAX_ESSAY_WORDS} words
                 </div>
               </div>
             </div>
@@ -534,7 +572,7 @@ export default function IeltsTask2Grader() {
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-sm font-medium">Score: {score}</span>
                         <div className="h-2 w-full bg-muted rounded-full overflow-hidden flex-1">
-                          <div className="h-full bg-primary" style={{ width: `${((score - 5) / 4) * 100}%` }}></div>
+                          <div className="h-full bg-primary" style={{ width: `${Math.max(0, Math.min(100, ((score - 3) / 6) * 100))}%` }}></div>
                         </div>
                       </div>
                     </div>

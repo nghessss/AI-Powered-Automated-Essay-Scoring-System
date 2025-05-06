@@ -150,19 +150,22 @@ async def get_evaluation_feedback(user_id: str, overall_score: float, question: 
 
     gemini_prompt = (
         f"You are a strict JSON fixer and formatter.\n"
-        f"Your task is to take the following possibly malformed JSON and output a strictly valid, properly formatted JSON object.\n\n"
+        f"Your task is to take the following possibly malformed JSON and output a strictly valid, properly formatted JSON object—nothing else.\n\n"
         f"---\n"
         f"{evaluation_text}\n"
         f"---\n\n"
         f"Rules:\n"
-        f"- Fix all invalid syntax: mismatched or curly quotes, extra commas, missing commas, invalid string terminations, etc.\n"
+        f"- Output only the JSON object. No code fences or any extra text.\n"
         f"- Use only standard double quotes (\") for keys and string values.\n"
-        f"- Output must be a single valid JSON object only.\n"
+        f"- Remove any trailing or leading commas; commas may only separate items.\n"
+        f"- Ensure all strings are properly opened, closed, and escaped (e.g. newlines as \\n, tabs as \\t).\n"
+        f"- Validate that braces and brackets match exactly.\n"
+        f"- The result must be parseable by JSON.parse() without errors.\n"
     )
 
     def run_gemini():
         return client.models.generate_content(
-            model="models/gemini-2.0-flash-001",
+            model="models/gemini-2.5-flash-preview-04-17",
             contents=gemini_prompt
         )
 
@@ -171,14 +174,20 @@ async def get_evaluation_feedback(user_id: str, overall_score: float, question: 
     return corrected_json
 
 
+import time  # Import the time module to measure execution time
+
 async def get_constructive_feedback(user_id: str, overall_score: float, question: str , answer: str, client, band_descriptors) -> str:
     constructive_prompt = await create_constructive_feedback_prompt(question, answer, overall_score)
 
     def run_gemini():
-        return client.models.generate_content(
-            model="models/gemini-2.0-flash-001",
+        start_time = time.time()  # Start the timer
+        result = client.models.generate_content(
+            model="models/gemini-2.5-flash-preview-04-17",
             contents=[band_descriptors, constructive_prompt]
         )
+        end_time = time.time()  # End the timer
+        print(f"run_gemini execution time: {end_time - start_time:.2f} seconds")  # Log the execution time
+        return result
 
     constructive_response = await asyncio.to_thread(run_gemini)
     constructive_text = constructive_response.text

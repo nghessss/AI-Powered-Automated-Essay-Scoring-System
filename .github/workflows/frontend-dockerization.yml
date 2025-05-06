@@ -57,6 +57,25 @@ jobs:
           echo "Building frontend container: $FRONTEND_TAG"
           docker build -f frontend/Dockerfile.frontend --tag "${FRONTEND_TAG}" frontend/
           docker push "${FRONTEND_TAG}"
+      - name: 'Deploy to Cloud Run'
+        run: |-
+      - name: 'Deploy frontend to Cloud Run'
+        run: |-
+          FRONTEND_TAG="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/ielts-frontend:latest"
 
+          echo "🚀 Deploying frontend image to Cloud Run..."
+          gcloud run deploy ielts-frontend \
+            --project="${PROJECT_ID}" \
+            --image="${FRONTEND_TAG}" \
+            --region="${GAR_LOCATION}" \
+            --platform=managed \
+            --memory=512Mi \
+            --cpu=1 \
+            --timeout=60 \
+            --concurrency=80 \
+            --max-instances=3 \
+            --port=8080 \
+            --service-account=151828473868-compute@developer.gserviceaccount.com \
+            --allow-unauthenticated
 
 

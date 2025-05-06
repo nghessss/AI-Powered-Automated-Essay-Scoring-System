@@ -5,6 +5,7 @@ from datetime import datetime
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi import HTTPException
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from pydantic import BaseModel
@@ -13,6 +14,7 @@ import uvicorn
 from gemma import get_feedback
 from get_essay_statistics import get_essay_statistics
 from grammar import get_annotated_fixed_essay
+
 load_dotenv()
 # MongoDB configuration
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -111,6 +113,45 @@ async def process_essay_endpoint(request: Feedback):
         "statistics":     stats,
         "annotated_essay": annotated
     }
+
+# @app.get("/sessions")
+# async def list_sessions():
+#     cursor = feedback_col.find(
+#         {},
+#         {"session_id": 1, "created_at": 1, "_id": 0}
+#     ).sort("created_at", -1)
+
+#     docs = list(cursor)
+#     session_ids = [doc["session_id"] for doc in docs]
+#     return {"session_ids": session_ids}
+@app.get("/sessions")
+async def list_sessions():
+    docs = list(
+        feedback_col
+        .find({}, {"session_id":1, "question":1, "created_at":1})
+        .sort("created_at", -1)
+    )
+    return {"sessions": [{"session_id": d["session_id"], "question": d["question"]} for d in docs]}
+
+@app.get("/session/{session_id}")
+async def get_session(session_id: str):
+    feedback_doc = feedback_col.find_one({"session_id": session_id})
+    stats_doc    = stats_col.find_one({"session_id": session_id})
+    anno_doc     = annotation_col.find_one({"session_id": session_id})
+
+    if not (feedback_doc and stats_doc and anno_doc):
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    return {
+        "session_id":      session_id,
+        "question":        feedback_doc["question"],
+        "answer":          feedback_doc["answer"],
+        "feedback":        feedback_doc["response"],
+        "statistics":      stats_doc["statistics"],
+        "annotated_essay": anno_doc["annotated_essay"],
+        "created_at":      feedback_doc["created_at"],
+    }
+
 
 # start the server
 if __name__ == "__main__":

@@ -14,8 +14,11 @@ import uvicorn
 from gemma import get_feedback
 from get_essay_statistics import get_essay_statistics
 from grammar import get_annotated_fixed_essay
-
+from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
+
+
+
 # MongoDB configuration
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 MONGO_URI = os.getenv("MONGODB_URI")
@@ -31,7 +34,13 @@ stats_col      = db["statistics"]
 annotation_col = db["annotations"]
 
 app = FastAPI(title="IELTS Essay Scoring API")
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 @app.on_event("startup")
 async def startup_db():
     # Ensure MongoDB connection is established

@@ -12,7 +12,9 @@ from pydantic import BaseModel
 import uvicorn
 from gemma import get_feedback
 from get_essay_statistics import get_essay_statistics
-from grammar import get_annotated_fixed_essay
+from grammar import get_annotated_fixed_essay, load_model
+from contextlib import asynccontextmanager
+
 load_dotenv()
 # MongoDB configuration
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -30,10 +32,17 @@ annotation_col = db["annotations"]
 
 app = FastAPI(title="IELTS Essay Scoring API")
 
-@app.on_event("startup")
-async def startup_db():
-    # Ensure MongoDB connection is established
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: do setup here
     _ = client
+    load_model()  # this blocks until done
+
+    yield
+
+    # Shutdown: do cleanup here if needed
+    # e.g. client.close()
+    
 class Feedback(BaseModel):
     question: str
     answer: str

@@ -6,11 +6,22 @@ import re
 import torch
 from transformers import AutoTokenizer, T5ForConditionalGeneration
 # initialize the model and tokenizer
-device = "cpu"
-print("Loading Coedit model...")
-tokenizer = AutoTokenizer.from_pretrained("grammarly/coedit-large")
-model = T5ForConditionalGeneration.from_pretrained("grammarly/coedit-large").to(device)
-print("Coedit model loaded successfully.")
+tokenizer = None
+model = None
+tokenizer = None
+model = None
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def load_model():
+    global tokenizer, model
+    if tokenizer is None or model is None:
+        print(f"Loading Coedit model on {device}...")
+        tokenizer = AutoTokenizer.from_pretrained("grammarly/coedit-large")
+        model = T5ForConditionalGeneration.from_pretrained("grammarly/coedit-large").to(device)
+        print("Coedit model loaded successfully.")
+        
+async def get_annotated_fixed_essay(answer: str):
+    load_model()
+    
 def fix_grammar(text: str, tokenizer, model, device) -> str:
     prompt = "Fix grammar: " + text
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True).to(device)

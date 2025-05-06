@@ -32,13 +32,13 @@ annotation_col = db["annotations"]
 
 app = FastAPI(title="IELTS Essay Scoring API")
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup: do setup here
-    _ = client
-    load_model()  # this blocks until done
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     # Startup: do setup here
+#     _ = client
+#     load_model()  # this blocks until done
 
-    yield
+#     yield
 
     # Shutdown: do cleanup here if needed
     # e.g. client.close()

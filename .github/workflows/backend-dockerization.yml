@@ -75,7 +75,7 @@ jobs:
             --port=8080 \
             --set-env-vars="BAND_DISCRIPTIOR_FILE=${{ secrets.BAND_DISCRIPTIOR_FILE }},GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},GEMINI_API_KEY_2=${{ secrets.GEMINI_API_KEY_2 }},GEMINI_API_KEY_3=${{ secrets.GEMINI_API_KEY_3 }},IELTS_HUGGINGFACE_API_KEY=${{ secrets.IELTS_HUGGINGFACE_API_KEY }},MAX_RETRIES=${{ secrets.MAX_RETRIES }},MONGODB_DB_NAME=${{ secrets.MONGODB_DB_NAME }},MONGODB_URI=${{ secrets.MONGODB_URI }},OLLAMA_URL=${{ secrets.OLLAMA_URL }},RETRY_DELAY=2" \
             --cpu-boost \
-            --no-allow-unauthenticated \
+            --allow-unauthenticated \
             --args=""
 
           

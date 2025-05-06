@@ -6,7 +6,7 @@ on:
       - 'main'
     paths:
       - 'frontend/**'
-      - '.github/workflows/frontend-dockerization'
+      - '.github/workflows/frontend-dockerization.yml'
 
 jobs:
   setup-build-publish-deploy:
@@ -67,7 +67,7 @@ jobs:
           gcloud run deploy ielts-frontend \
             --project="${PROJECT_ID}" \
             --image="${FRONTEND_TAG}" \
-            --region="${GAR_LOCATION}" \
+            --region="asia-southeast1" \
             --platform=managed \
             --memory=512Mi \
             --cpu=1 \
@@ -76,6 +76,8 @@ jobs:
             --max-instances=3 \
             --port=8080 \
             --service-account=151828473868-compute@developer.gserviceaccount.com \
+            --set-env-vars="NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" \
             --allow-unauthenticated
+
 
 

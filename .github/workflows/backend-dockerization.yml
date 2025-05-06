@@ -64,7 +64,7 @@ jobs:
           gcloud run deploy ielts-backend \
             --project="${PROJECT_ID}" \
             --image="${BACKEND_TAG}" \
-            --region="${GAR_LOCATION}" \
+            --region="asia-southeast1" \
             --platform=managed \
             --memory=16Gi \
             --cpu=4 \

@@ -12,7 +12,7 @@ export default function SessionsSidebar() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+    const URL = process.env.NEXT_PUBLIC_API_URL
     fetch(URL + "/sessions")
       .then((r) => {
         if (!r.ok) throw new Error(`Status ${r.status}`)

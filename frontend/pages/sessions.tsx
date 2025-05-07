@@ -38,7 +38,7 @@ export default function SessionsListPage({ sessionIds, error }: SessionsProps) {
 
 export const getServerSideProps: GetServerSideProps<SessionsProps> = async () => {
   try {
-    const URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+    const URL = process.env.NEXT_PUBLIC_API_URL
     const res = await fetch(URL+"/sessions")
     if (!res.ok) throw new Error(`Status ${res.status}`)
     const json = await res.json()

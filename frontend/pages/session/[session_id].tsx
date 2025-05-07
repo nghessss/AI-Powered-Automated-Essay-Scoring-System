@@ -274,7 +274,7 @@ export const getServerSideProps: GetServerSideProps<SessionPageProps> = async ({
   params,
 }) => {
   const session_id = params?.session_id as string  // <-- Chỗ sửa: lấy ID từ params ở đây
-  const URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+  const URL = process.env.NEXT_PUBLIC_API_URL
   const res = await fetch(`${URL}/session/${session_id}`)
   if (res.status === 404) {
     return { props: { session_id, notFound: true } }

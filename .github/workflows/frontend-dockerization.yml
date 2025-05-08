@@ -50,7 +50,7 @@ jobs:
 
       - name: Create env file for frontend
         run: |
-          echo "NEXT_PUBLIC_BACKEND_DB_URL=${{secrets.NEXT_PUBLIC_BACKEND_DB_URL}}" >> .env.local
+          echo "NEXT_PUBLIC_API_URL=${{secrets.NEXT_PUBLIC_API_URL}}" >> .env.local
         working-directory: ./frontend
 
       - name: 'Build and push Docker containers'

@@ -48,6 +48,11 @@ jobs:
           password: '${{ steps.auth.outputs.auth_token }}'
           registry: '${{ env.GAR_LOCATION }}-docker.pkg.dev'
 
+      - name: Create env file for frontend
+        run: |
+          echo "NEXT_PUBLIC_BACKEND_DB_URL=${{secrets.NEXT_PUBLIC_BACKEND_DB_URL}}" >> .env.local
+        working-directory: ./frontend
+
       - name: 'Build and push Docker containers'
         run: |-
           gcloud auth configure-docker asia-southeast2-docker.pkg.dev
@@ -57,8 +62,7 @@ jobs:
           echo "Building frontend container: $FRONTEND_TAG"
           docker build -f frontend/Dockerfile.frontend --tag "${FRONTEND_TAG}" frontend/
           docker push "${FRONTEND_TAG}"
-      - name: 'Deploy to Cloud Run'
-        run: |-
+
       - name: 'Deploy frontend to Cloud Run'
         run: |-
           FRONTEND_TAG="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/ielts-frontend:latest"

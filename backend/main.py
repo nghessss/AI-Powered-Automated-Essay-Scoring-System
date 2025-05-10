@@ -15,8 +15,28 @@ from gemma import get_feedback
 from get_essay_statistics import get_essay_statistics
 from grammar import get_annotated_fixed_essay
 from fastapi.middleware.cors import CORSMiddleware
-load_dotenv()
+from prometheus_client import generate_latest, REGISTRY, CONTENT_TYPE_LATEST, Counter, Histogram
+from fastapi.responses import Response
+import time
 
+load_dotenv()
+# Prometheus metrics
+
+try:
+    REQUEST_COUNT = Counter(
+        "http_requests_total",
+        "Total HTTP requests",
+        ["method", "endpoint", "http_status"]
+    )
+    REQUEST_LATENCY = Histogram(
+        "http_request_duration_seconds",
+        "HTTP request latency in seconds",
+        ["method", "endpoint"]
+    )
+except ValueError:
+    # Metrics already registered (probably due to hot reload)
+    REQUEST_COUNT = REGISTRY._names_to_collectors.get("http_requests_total")
+    REQUEST_LATENCY = REGISTRY._names_to_collectors.get("http_request_duration_seconds")
 
 
 # MongoDB configuration
@@ -34,6 +54,18 @@ stats_col      = db["statistics"]
 annotation_col = db["annotations"]
 
 app = FastAPI(title="IELTS Essay Scoring API")
+@app.middleware("http")
+async def prometheus_middleware(request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+
+    REQUEST_LATENCY.labels(request.method, request.url.path).observe(process_time)
+    REQUEST_COUNT.labels(request.method, request.url.path, response.status_code).inc()
+
+    return response
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -160,7 +192,9 @@ async def get_session(session_id: str):
         "annotated_essay": anno_doc["annotated_essay"],
         "created_at":      feedback_doc["created_at"],
     }
-
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(REGISTRY), media_type=CONTENT_TYPE_LATEST)
 
 # start the server
 if __name__ == "__main__":

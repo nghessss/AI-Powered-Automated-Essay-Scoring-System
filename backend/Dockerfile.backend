@@ -1,5 +1,5 @@
-# 1. Base image with platform specification and Python 3.12
-FROM --platform=linux/amd64 python:3.12-slim
+# 1. Base image with platform specification and Python 3.11.9
+FROM --platform=linux/amd64 python:3.11.9-slim
 
 # 2. Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -24,7 +24,6 @@ RUN pip install --upgrade pip setuptools wheel && \
 COPY . .
 
 EXPOSE 8080
-
 
 # 10. Start Ollama and your FastAPI app
 CMD ["python", "main.py"]

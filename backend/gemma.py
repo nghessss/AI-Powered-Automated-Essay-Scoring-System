@@ -165,7 +165,7 @@ async def get_evaluation_feedback(user_id: str, overall_score: float, question: 
 
     def run_gemini():
         return client.models.generate_content(
-            model="models/gemini-2.5-flash-preview-04-17",
+            model="models/gemini-2.0-flash-001",
             contents=gemini_prompt
         )
 

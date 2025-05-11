@@ -351,9 +351,7 @@ export default function IeltsTask2Grader(props: IeltsTask2GraderProps) {
   }
 
   const getOverallBand = () => {
-    const average =
-      (scores.taskAchievement + scores.coherenceCohesion + scores.lexicalResource + scores.grammaticalRange) / 4
-    return average.toFixed(1)
+    return feedbackData.overall?.toFixed(1)
   }
 
   // Get feedback for a specific criterion and feedback type

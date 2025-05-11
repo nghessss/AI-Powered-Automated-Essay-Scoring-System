@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 function formatGradingResponse(gradingResult: any) {
   const formatCriterion = (criterionName: string) => ({
-    score: gradingResult.evaluation_feedback.criteria[criterionName].score,
+    score: gradingResult.constructive_feedback.criteria[criterionName].score,
     evaluation_feedback: gradingResult.evaluation_feedback.criteria[criterionName].details,
     constructive_feedback: {
       strengths: gradingResult.constructive_feedback.criteria[criterionName].strengths,

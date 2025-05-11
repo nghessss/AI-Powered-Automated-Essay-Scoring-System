@@ -13,7 +13,7 @@ model = None
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 tokenizer = AutoTokenizer.from_pretrained("grammarly/coedit-large")
 model = T5ForConditionalGeneration.from_pretrained("grammarly/coedit-large").to(device)
-print("COEDIT Model and tokenizer loaded.")
+print(f"COEDIT Model and tokenizer loaded. Running on device: {device}")
     
 def fix_grammar(text: str, tokenizer, model, device) -> str:
     prompt = "Fix grammar: " + text

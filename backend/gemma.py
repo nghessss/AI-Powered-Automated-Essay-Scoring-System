@@ -165,7 +165,7 @@ async def get_evaluation_feedback(user_id: str, overall_score: float, question: 
 
     def run_gemini():
         return client.models.generate_content(
-            model="models/gemini-2.5-flash-preview-04-17",
+            model="models/gemini-2.0-flash-001",
             contents=gemini_prompt
         )
 
@@ -182,7 +182,7 @@ async def get_constructive_feedback(user_id: str, overall_score: float, question
     def run_gemini():
         start_time = time.time()  # Start the timer
         result = client.models.generate_content(
-            model="models/gemini-2.5-flash-preview-04-17",
+            model="models/gemini-2.0-flash-001",
             contents=[band_descriptors, constructive_prompt]
         )
         end_time = time.time()  # End the timer

@@ -6,7 +6,7 @@ on:
       - 'main'
     paths:
       - 'ollama-custom/**'   # Trigger when changes are made in the ollama directory
-      - '.github/workflows/gke-ollama.yml'
+      - '.github/workflows/ollama-dockerization.yml'
 
 jobs:
   setup-build-publish-deploy:

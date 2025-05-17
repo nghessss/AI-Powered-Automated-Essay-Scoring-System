@@ -24,3 +24,13 @@ services:
     volumes:
       - ./backend:/app
     restart: unless-stopped
+
+  frontend:
+    image: voasd00/ielts-frontend:latest
+    platform: linux/amd64
+    container_name: ielts-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped

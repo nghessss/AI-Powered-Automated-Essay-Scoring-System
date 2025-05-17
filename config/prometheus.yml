@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'cloudrun-backend'
+    scrape_interval: 5s
+    metrics_path: /metrics
+    scheme: https
+    static_configs:
+      - targets: ['ielts-backend-151828473868.asia-southeast1.run.app']

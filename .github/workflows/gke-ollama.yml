@@ -5,7 +5,7 @@ on:
     branches:
       - 'main'
     paths:
-      - 'ollama/**'   # Trigger when changes are made in the ollama directory
+      - 'ollama-custom/**'   # Trigger when changes are made in the ollama directory
       - '.github/workflows/gke-ollama.yml'
 
 jobs:

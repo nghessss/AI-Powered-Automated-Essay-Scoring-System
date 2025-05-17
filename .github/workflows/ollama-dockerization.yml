@@ -63,5 +63,5 @@ jobs:
       
           # Set your build arguments
           echo "Building database container: $OLLAMA_TAG"
-          docker build -f ollama-custom/Dockerfile.ollama --tag "${OLLAMA_TAG}" ollama/
+          docker build -f ollama-custom/Dockerfile.ollama --tag "${OLLAMA_TAG}" ollama-custom/
           docker push "${OLLAMA_TAG}"

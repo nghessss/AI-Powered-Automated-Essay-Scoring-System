@@ -1,0 +1,85 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - 'ollama/**'
+      - '.github/workflows/docker-image.yml'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.filter.outputs.changed }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Detect changed services
+        id: filter
+        run: |
+          echo "Looking for changes..."
+          CHANGED=""
+          if git diff --name-only ${{ github.sha }}~1 ${{ github.sha }} | grep -q "^api/"; then
+            CHANGED+="api,"
+          fi
+          if git diff --name-only ${{ github.sha }}~1 ${{ github.sha }} | grep -q "^front-end/"; then
+            CHANGED+="front-end,"
+          fi
+          if git diff --name-only ${{ github.sha }}~1 ${{ github.sha }} | grep -q "^database/"; then
+            CHANGED+="database,"
+          fi
+
+          CHANGED=${CHANGED%,}
+          echo "Changed services: $CHANGED"
+          echo "changed=$CHANGED" >> $GITHUB_OUTPUT
+
+  build-and-push:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.changed != ''
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: ${{ fromJson('["' + needs.detect-changes.outputs.changed + '"]') }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Create env file for service
+        run: |
+          cat <<EOF > .env
+          IELTS_HUGGINGFACE_API_KEY=${{ secrets.IELTS_HUGGINGFACE_API_KEY }}
+          OLLAMA_URL=${{ secrets.OLLAMA_URL }}
+          MAX_RETRIES=${{ secrets.MAX_RETRIES }}
+          RETRY_DELAY=${{ secrets.RETRY_DELAY }}
+          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_2=${{ secrets.GEMINI_API_KEY_2 }}
+          GEMINI_API_KEY_3=${{ secrets.GEMINI_API_KEY_3 }}
+          BAND_DISCRIPTIOR_FILE=${{ secrets.BAND_DISCRIPTIOR_FILE }}
+          MONGODB_URI=${{ secrets.MONGODB_URI }}
+          MONGODB_DB_NAME=${{ secrets.MONGODB_DB_NAME }}
+          EOF
+        working-directory: ./${{ matrix.service }}
+
+      - name: Build and push ielts-${{ matrix.service }} image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/ielts-${{ matrix.service }}:latest
